@@ -23,7 +23,7 @@ export default async function handler(req, res) {
                 contents: [{ parts: [{ text: prompt }] }]
             })
         });
-
+        console.log(response)
         const data = await response.json();
 
         if (!response.ok) {
