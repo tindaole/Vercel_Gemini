@@ -14,7 +14,6 @@ export default async function handler(req, res) {
     try {
         // Cấu trúc URL động theo model được chọn
         // Lưu ý: selectedModel sẽ có dạng "models/gemini-pro" nên ta ghép trực tiếp vào URL
-        console.log(response);
 
         const response = await fetch(apiUrl, {
             method: 'POST',
