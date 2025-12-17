@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     const apiKey = process.env.GEMINI_API_KEY;
 
     // Nếu người dùng chưa chọn, mặc định thử dùng gemini-1.5-flash
-    const selectedModel = model || "models/gemini-1.5-flash";
+    const selectedModel = model || "models/gemini-2.5-flash";
 
     if (!apiKey) return res.status(500).json({ error: 'Missing API Key' });
 
