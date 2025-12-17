@@ -10,11 +10,11 @@ export default async function handler(req, res) {
     const selectedModel = model || "models/gemini-2.5-flash";
 
     if (!apiKey) return res.status(500).json({ error: 'Missing API Key' });
-
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/${selectedModel}:generateContent?key=${apiKey}`;
     try {
         // Cấu trúc URL động theo model được chọn
         // Lưu ý: selectedModel sẽ có dạng "models/gemini-pro" nên ta ghép trực tiếp vào URL
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/${selectedModel}:generateContent?key=${apiKey}`;
+        
 
         const response = await fetch(apiUrl, {
             method: 'POST',
