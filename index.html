@@ -61,15 +61,15 @@
             
             // Lọc và hiển thị model
             // Chỉ lấy các model hỗ trợ 'generateContent'
-            const chatModels = data.models.filter(m => 
-                m.supportedGenerationMethods && 
-                m.supportedGenerationMethods.includes("generateContent")
-            );
+            // const chatModels = data.models.filter(m => 
+            //     m.supportedGenerationMethods && 
+            //     m.supportedGenerationMethods.includes("generateContent")
+            // );
 
-            if (chatModels.length === 0) {
-                 modelSelect.innerHTML = "<option>Không có model chat nào khả dụng</option>";
-                 return;
-            }
+            // if (chatModels.length === 0) {
+            //      modelSelect.innerHTML = "<option>Không có model chat nào khả dụng</option>";
+            //      return;
+            // }
             
             const option = document.createElement('option');
             option.value = "gemini-2.5-flash"; // Ví dụ: models/gemini-1.5-flash
