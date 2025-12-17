@@ -70,17 +70,25 @@
                  modelSelect.innerHTML = "<option>Không có model chat nào khả dụng</option>";
                  return;
             }
-
-            chatModels.forEach(model => {
-                const option = document.createElement('option');
-                option.value = model.name; // Ví dụ: models/gemini-1.5-flash
-                option.text = `${model.displayName} (${model.version})`;
+            
+            const option = document.createElement('option');
+            option.value = "gemini-2.5-flash"; // Ví dụ: models/gemini-1.5-flash
+            option.text = "gemini-2.5-flash 001";
+            
+            // Ưu tiên chọn sẵn gemini-2.5-flash hoặc gemini-pro nếu có
+            option.selected = true;
+            
+            modelSelect.appendChild(option);
+            // chatModels.forEach(model => {
+            //     const option = document.createElement('option');
+            //     option.value = model.name; // Ví dụ: models/gemini-1.5-flash
+            //     option.text = `${model.displayName} (${model.version})`;
                 
-                // Ưu tiên chọn sẵn gemini-1.5-flash hoặc gemini-pro nếu có
-                if (model.name.includes("gemini-1.5-flash")) option.selected = true;
+            //     // Ưu tiên chọn sẵn gemini-1.5-flash hoặc gemini-pro nếu có
+            //     if (model.name.includes("gemini-1.5-flash")) option.selected = true;
                 
-                modelSelect.appendChild(option);
-            });
+            //     modelSelect.appendChild(option);
+            // });
 
         } catch (err) {
             modelSelect.innerHTML = "<option>Lỗi tải model</option>";
