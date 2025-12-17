@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Personal Gemini</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h2 { color: #333; margin-top: 0; }
+        
+        .setup-box { background: #e8f0fe; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #d2e3fc; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+        
+        input[type="password"], textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        textarea { height: 120px; resize: vertical; font-family: inherit; }
+        
+        button { background-color: #1a73e8; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; transition: background 0.2s; }
+        button:hover { background-color: #1557b0; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        #response { margin-top: 25px; border-top: 1px solid #eee; padding-top: 20px; }
+        .loading { color: #666; font-style: italic; display: none; }
+        .result-content { line-height: 1.6; color: #202124; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 5px; overflow-x: auto; }
+        
+        .api-note { font-size: 12px; color: #666; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Trợ lý Gemini Cá Nhân</h2>
+
+    <div class="setup-box">
+        <div class="input-group">
+            <label for="apiKey">Google API Key:</label>
+            <input type="password" id="apiKey" placeholder="Dán API Key từ Google AI Studio vào đây">
+            <p class="api-note">Key được lưu trên trình duyệt của bạn, không gửi về server Github.</p>
+        </div>
+    </div>
+
+    <div class="input-group">
+        <label for="prompt">Câu hỏi của bạn:</label>
+        <textarea id="prompt" placeholder="Nhập nội dung cần hỗ trợ..."></textarea>
+    </div>
+
+    <button id="sendBtn" onclick="sendToGemini()">Gửi yêu cầu</button>
+
+    <div id="response">
+        <div id="loading" class="loading">Đang suy nghĩ...</div>
+        <div id="result" class="result-content"></div>
+    </div>
+</div>
+
+<script type="module">
+    // Import SDK trực tiếp từ CDN của Google
+    import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+
+    // Tự động điền key nếu đã lưu trước đó
+    const savedKey = localStorage.getItem("gemini_api_key");
+    if (savedKey) {
+        document.getElementById("apiKey").value = savedKey;
+    }
+
+    window.sendToGemini = async function() {
+        const apiKey = document.getElementById("apiKey").value.trim();
+        const prompt = document.getElementById("prompt").value.trim();
+        const resultDiv = document.getElementById("result");
+        const loadingDiv = document.getElementById("loading");
+        const sendBtn = document.getElementById("sendBtn");
+
+        if (!apiKey) {
+            alert("Vui lòng nhập API Key!");
+            return;
+        }
+        if (!prompt) {
+            alert("Vui lòng nhập câu hỏi!");
+            return;
+        }
+
+        // Lưu key để lần sau không phải nhập lại
+        localStorage.setItem("gemini_api_key", apiKey);
+
+        // UI xử lý
+        sendBtn.disabled = true;
+        loadingDiv.style.display = "block";
+        resultDiv.innerHTML = "";
+
+        try {
+            // Khởi tạo Gemini
+            const genAI = new GoogleGenerativeAI(apiKey);
+            // Sử dụng model gemini-1.5-flash cho tốc độ nhanh, hoặc đổi thành 'gemini-1.5-pro'
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"});
+
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const text = response.text();
+
+            // Hiển thị kết quả (dùng marked để render Markdown)
+            resultDiv.innerHTML = marked.parse(text);
+
+        } catch (error) {
+            console.error(error);
+            resultDiv.innerHTML = `<span style="color:red;">Lỗi: ${error.message}</span><br><small>Kiểm tra lại API Key hoặc kết nối mạng.</small>`;
+        } finally {
+            sendBtn.disabled = false;
+            loadingDiv.style.display = "none";
+        }
+    }
+</script>
+
+</body>
+</html>
