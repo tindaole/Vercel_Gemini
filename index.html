@@ -93,7 +93,7 @@
             // Khởi tạo Gemini
             const genAI = new GoogleGenerativeAI(apiKey);
             // Sử dụng model gemini-1.5-flash cho tốc độ nhanh, hoặc đổi thành 'gemini-1.5-pro'
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"});
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest"});
 
             const result = await model.generateContent(prompt);
             const response = await result.response;
