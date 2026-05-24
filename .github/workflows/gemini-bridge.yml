@@ -1,0 +1,50 @@
+name: Gemini API Bridge
+
+# Kích hoạt khi có một Issue mới được mở
+on:
+  issues:
+    types: [opened]
+
+# Cấp quyền cho GitHub Actions được phép comment và đóng Issue
+permissions:
+  issues: write
+
+jobs:
+  process-prompt:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Xử lý Prompt và gọi Vercel API
+        id: gemini
+        env:
+          # THAY ĐỔI ĐƯỜNG LINK NÀY THÀNH LINK VERCEL CỦA BẠN
+          VERCEL_URL: "https://vercel-gemini-azure.vercel.app/api/chat"
+          PROMPT: ${{ github.event.issue.body }}
+        run: |
+          # 1. Đóng gói câu hỏi thành JSON an toàn (xử lý được dấu nháy, xuống dòng bằng jq)
+          PAYLOAD=$(jq -n --arg p "$PROMPT" '{prompt: $p}')
+          
+          # 2. Gọi POST HTTP đến Vercel Server
+          curl -s -X POST "$VERCEL_URL" \
+               -H "Content-Type: application/json" \
+               -d "$PAYLOAD" > response.json
+          
+          # 3. Trích xuất câu trả lời từ file JSON (lấy trường 'result')
+          ANSWER=$(jq -r '.result // "Đã có lỗi xảy ra từ Vercel server"' response.json)
+          
+          # 4. Lưu kết quả vào biến môi trường hỗ trợ đa dòng (Multiline)
+          echo "RESPONSE_TEXT<<EOF" >> $GITHUB_ENV
+          echo "$ANSWER" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Phản hồi kết quả vào Issue
+        env:
+          # Sử dụng Token mặc định của GitHub Action, không cần tự tạo
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment ${{ github.event.issue.number }} --body "$RESPONSE_TEXT"
+
+      - name: Đóng Issue (Dọn dẹp)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue close ${{ github.event.issue.number }}
