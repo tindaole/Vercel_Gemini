@@ -683,8 +683,24 @@
                         <div class="card-header" style="margin-bottom: 12px;">
                             <h3 id="detailSubject" style="font-size: 18px;">Chủ đề email</h3>
                         </div>
-                        <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid var(--bg-card-border); border-radius: 12px; overflow: hidden; margin-bottom: 16px;">
-                            <iframe id="emailHtmlIframe" style="width: 100%; border: none; min-height: 220px; background: transparent; display: block;" sandbox="allow-popups allow-same-origin"></iframe>
+                        <!-- Email View Format & Theme Bar -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn btn-outline" style="padding: 4px 10px; font-size: 11px;" onclick="setEmailViewFormat('html')">
+                                    <i data-lucide="code"></i> HTML
+                                </button>
+                                <button class="btn btn-outline" style="padding: 4px 10px; font-size: 11px;" onclick="setEmailViewFormat('plain')">
+                                    <i data-lucide="file-text"></i> Văn bản
+                                </button>
+                            </div>
+                            <button class="btn btn-outline" style="padding: 4px 10px; font-size: 11px;" onclick="toggleEmailBackground()">
+                                <i data-lucide="sun" id="emailBgIcon"></i> <span id="emailBgLabel">Nền Sáng</span>
+                            </button>
+                        </div>
+
+                        <!-- Email Content Box (High contrast #ffffff by default) -->
+                        <div id="detailBodyBox" style="background: #ffffff; color: #1f2937; border: 1px solid var(--bg-card-border); border-radius: 12px; padding: 20px; margin-bottom: 16px; min-height: 180px; overflow-x: auto; font-size: 14px; line-height: 1.6; word-wrap: break-word;">
+                            <div id="detailBodyContent">Đang tải nội dung email...</div>
                         </div>
 
                         <!-- Attachments Container -->
@@ -910,6 +926,8 @@
             calendarEvents: [],
             selectedEmail: null,
             replyMode: 'reply',
+            emailViewFormat: 'html',
+            emailBgMode: 'light',
             models: []
         };
 
@@ -1248,9 +1266,7 @@
             
             const lastMsg = email.messages && email.messages.length > 0 ? email.messages[email.messages.length - 1] : null;
 
-            const htmlContent = lastMsg ? (lastMsg.htmlBody || lastMsg.body) : email.snippet;
-            const plainContent = lastMsg ? (lastMsg.plainBody || lastMsg.body) : email.snippet;
-            renderEmailInIframe(htmlContent, plainContent);
+            renderEmailContent();
 
             // Render Attachments
             let allAtts = [];
@@ -1285,61 +1301,57 @@
             lucide.createIcons();
         }
 
-        // Render HTML Email Content inside Isolated Iframe
-        function renderEmailInIframe(htmlContent, plainContent) {
-            const iframe = document.getElementById('emailHtmlIframe');
-            if (!iframe) return;
+        // Email View Format & Background Handlers
+        function setEmailViewFormat(format) {
+            state.emailViewFormat = format;
+            renderEmailContent();
+        }
 
-            const isDark = state.theme === 'dark';
-            const textColor = isDark ? '#f8fafc' : '#0f172a';
-            const linkColor = isDark ? '#818cf8' : '#4f46e5';
+        function toggleEmailBackground() {
+            state.emailBgMode = state.emailBgMode === 'light' ? 'dark' : 'light';
+            const isLight = state.emailBgMode === 'light';
+            document.getElementById('emailBgLabel').textContent = isLight ? 'Nền Sáng' : 'Nền Tối';
+            document.getElementById('emailBgIcon').setAttribute('data-lucide', isLight ? 'sun' : 'moon');
+            renderEmailContent();
+            lucide.createIcons();
+        }
 
-            let bodyHtml = '';
-            if (htmlContent && htmlContent.trim()) {
-                bodyHtml = htmlContent;
-            } else if (plainContent) {
-                bodyHtml = `<pre style="white-space: pre-wrap; word-wrap: break-word; font-family: inherit; font-size: 14px;">${escapeHtml(plainContent)}</pre>`;
+        function renderEmailContent() {
+            if (!state.selectedEmail) return;
+
+            const email = state.selectedEmail;
+            const lastMsg = email.messages && email.messages.length > 0 ? email.messages[email.messages.length - 1] : null;
+
+            const contentDiv = document.getElementById('detailBodyContent');
+            const boxDiv = document.getElementById('detailBodyBox');
+
+            if (!contentDiv || !boxDiv) return;
+
+            const isLight = state.emailBgMode === 'light';
+            boxDiv.style.background = isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.7)';
+            boxDiv.style.color = isLight ? '#1f2937' : '#f8fafc';
+
+            const rawHtml = lastMsg ? (lastMsg.htmlBody || lastMsg.body) : email.snippet;
+            const rawPlain = lastMsg ? (lastMsg.plainBody || lastMsg.body) : email.snippet;
+
+            if (state.emailViewFormat === 'plain') {
+                contentDiv.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word; font-family: inherit; font-size: 14px; margin: 0; color: inherit;">${escapeHtml(rawPlain || rawHtml || '')}</pre>`;
             } else {
-                bodyHtml = '<p style="color: #94a3b8; font-style: italic;">(Không có nội dung)</p>';
+                if (rawHtml && rawHtml.trim()) {
+                    contentDiv.innerHTML = rawHtml;
+                } else if (rawPlain) {
+                    contentDiv.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word; font-family: inherit; font-size: 14px; margin: 0; color: inherit;">${escapeHtml(rawPlain)}</pre>`;
+                } else {
+                    contentDiv.innerHTML = '<p style="color: #94a3b8; font-style: italic;">(Không có nội dung email)</p>';
+                }
             }
 
-            const doc = iframe.contentDocument || iframe.contentWindow.document;
-            doc.open();
-            doc.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <style>
-                        body {
-                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-                            font-size: 14px;
-                            line-height: 1.6;
-                            color: ${textColor};
-                            background-color: transparent;
-                            margin: 0;
-                            padding: 16px;
-                            word-wrap: break-word;
-                            overflow-x: auto;
-                        }
-                        a { color: ${linkColor}; text-decoration: underline; }
-                        img { max-width: 100% !important; height: auto !important; border-radius: 8px; }
-                        table { max-width: 100% !important; border-collapse: collapse; }
-                        blockquote { border-left: 3px solid rgba(255,255,255,0.2); margin: 10px 0; padding-left: 12px; opacity: 0.85; }
-                        pre { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px; overflow-x: auto; }
-                    </style>
-                </head>
-                <body>${bodyHtml}</body>
-                </html>
-            `);
-            doc.close();
-
-            setTimeout(() => {
-                try {
-                    const contentHeight = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight, 180);
-                    iframe.style.height = (contentHeight + 20) + 'px';
-                } catch(e) {}
-            }, 150);
+            // Ensure images inside email body don't overflow
+            contentDiv.querySelectorAll('img').forEach(img => {
+                img.style.maxWidth = '100%';
+                img.style.height = 'auto';
+                img.style.borderRadius = '8px';
+            });
         }
 
         // Email Action Modes (reply, replyAll, forward)
