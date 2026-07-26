@@ -44,11 +44,19 @@ function handleRequest(e) {
       response.data = getEmails(data.maxResults, data.query);
     } else if (action === "replyEmail") {
       response.data = replyEmail(data);
+    } else if (action === "replyAllEmail") {
+      response.data = replyAllEmail(data);
+    } else if (action === "forwardEmail") {
+      response.data = forwardEmail(data);
+    } else if (action === "deleteEmail") {
+      response.data = deleteEmail(data);
+    } else if (action === "markReadEmail") {
+      response.data = markReadEmail(data);
     } else if (action === "sendEmail") {
       response.data = sendEmail(data);
     } else {
       response.status = "error";
-      response.error = "Invalid or missing action. Available: ping, getCalendarEvents, createCalendarEvent, getEmails, replyEmail, sendEmail";
+      response.error = "Invalid or missing action. Available: ping, getCalendarEvents, createCalendarEvent, getEmails, replyEmail, replyAllEmail, forwardEmail, deleteEmail, markReadEmail, sendEmail";
     }
   } catch (err) {
     response.status = "error";
@@ -124,8 +132,9 @@ function getSnippetText(msg) {
 }
 
 function getEmails(maxResults, query) {
-  var count = parseInt(maxResults || 15, 10);
-  var q = query || "inbox";
+  var count = parseInt(maxResults || 10, 10);
+  // Default to 10 latest emails from Primary category in Gmail
+  var q = query || "category:primary inbox";
   var threads = GmailApp.search(q, 0, count);
   var resultList = [];
   
@@ -147,6 +156,25 @@ function getEmails(maxResults, query) {
       snippet: getSnippetText(lastMsg),
       messageCount: thread.getMessageCount(),
       messages: messages.map(function(m) {
+        // Extract attachments
+        var rawAtts = m.getAttachments();
+        var attachments = rawAtts.map(function(att) {
+          var size = att.getSize();
+          var item = {
+            name: att.getName(),
+            mimeType: att.getContentType(),
+            size: size
+          };
+          // Include base64 data for previews if file size <= 4MB
+          if (size <= 4 * 1024 * 1024) {
+            try {
+              var base64 = Utilities.base64Encode(att.getBytes());
+              item.dataUrl = "data:" + att.getContentType() + ";base64," + base64;
+            } catch (e) {}
+          }
+          return item;
+        });
+
         return {
           id: m.getId(),
           from: m.getFrom(),
@@ -154,7 +182,8 @@ function getEmails(maxResults, query) {
           date: m.getDate().toISOString(),
           subject: m.getSubject(),
           snippet: getSnippetText(m),
-          body: m.getPlainBody() || m.getBody()
+          body: m.getPlainBody() || m.getBody(),
+          attachments: attachments
         };
       })
     });
@@ -163,20 +192,55 @@ function getEmails(maxResults, query) {
 }
 
 function replyEmail(data) {
-  if (!data.body) {
-    throw new Error("Missing reply body content");
-  }
+  if (!data.body) throw new Error("Missing reply body content");
   
   if (data.threadId) {
     var thread = GmailApp.getThreadById(data.threadId);
     thread.reply(data.body);
     return { success: true, message: "Replied to email thread successfully" };
-  } else if (data.messageId) {
-    var msg = GmailApp.getMessageById(data.messageId);
-    msg.reply(data.body);
-    return { success: true, message: "Replied to email message successfully" };
   }
-  throw new Error("Missing threadId or messageId");
+  throw new Error("Missing threadId");
+}
+
+function replyAllEmail(data) {
+  if (!data.body) throw new Error("Missing reply body content");
+  
+  if (data.threadId) {
+    var thread = GmailApp.getThreadById(data.threadId);
+    thread.replyAll(data.body);
+    return { success: true, message: "Replied all to email thread successfully" };
+  }
+  throw new Error("Missing threadId");
+}
+
+function forwardEmail(data) {
+  if (!data.to || !data.threadId) throw new Error("Missing recipient 'to' or 'threadId'");
+  
+  var thread = GmailApp.getThreadById(data.threadId);
+  var messages = thread.getMessages();
+  var lastMsg = messages[messages.length - 1];
+  
+  var options = {};
+  if (data.body) options.htmlBody = data.body;
+  lastMsg.forward(data.to, options);
+  
+  return { success: true, message: "Forwarded email successfully" };
+}
+
+function deleteEmail(data) {
+  if (!data.threadId) throw new Error("Missing threadId");
+  
+  var thread = GmailApp.getThreadById(data.threadId);
+  thread.moveToTrash();
+  return { success: true, message: "Email moved to trash successfully" };
+}
+
+function markReadEmail(data) {
+  if (!data.threadId) throw new Error("Missing threadId");
+  
+  var thread = GmailApp.getThreadById(data.threadId);
+  thread.markRead();
+  return { success: true, message: "Email marked as read successfully" };
 }
 
 function sendEmail(data) {

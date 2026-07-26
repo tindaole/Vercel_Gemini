@@ -563,9 +563,9 @@
         <section id="view-overview" class="tab-view active">
             <div class="grid-3">
                 <div class="card" style="border-top: 4px solid var(--primary);">
-                    <div class="card-title"><i data-lucide="mail" style="color: var(--primary);"></i> Email chưa đọc</div>
+                    <div class="card-title"><i data-lucide="mail" style="color: var(--primary);"></i> Email Primary chưa đọc</div>
                     <h2 style="font-size: 36px; margin: 12px 0;" id="statUnreadCount">--</h2>
-                    <p style="font-size: 13px; color: var(--text-muted);">Cập nhật từ hộp thư Gmail cá nhân</p>
+                    <p style="font-size: 13px; color: var(--text-muted);">Top 10 email từ tab Primary</p>
                 </div>
                 <div class="card" style="border-top: 4px solid var(--accent-purple);">
                     <div class="card-title"><i data-lucide="calendar" style="color: var(--accent-purple);"></i> Sự kiện sắp tới</div>
@@ -583,7 +583,7 @@
                 <!-- Recent Emails Preview -->
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-title"><i data-lucide="mail"></i> Email gần đây</div>
+                        <div class="card-title"><i data-lucide="mail"></i> Email Primary (10 mới nhất)</div>
                         <button class="btn btn-outline" style="padding: 6px 12px; font-size: 12px;" onclick="loadGmailData()">Tải lại</button>
                     </div>
                     <div id="overviewEmailList" class="email-list">
@@ -610,7 +610,7 @@
                 <!-- Email List Panel -->
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-title"><i data-lucide="inbox"></i> Hộp thư đến</div>
+                        <div class="card-title"><i data-lucide="inbox"></i> Primary Inbox (10 Thư mới nhất)</div>
                         <div style="display: flex; gap: 8px;">
                             <button class="btn btn-outline" onclick="openNewEmailModal()"><i data-lucide="plus"></i> Soạn thư</button>
                             <button class="btn btn-outline" onclick="loadGmailData()"><i data-lucide="refresh-cw"></i></button>
@@ -625,10 +625,29 @@
                 <div class="card">
                     <div id="emailDetailPlaceholder" style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
                         <i data-lucide="mail-open" style="width: 48px; height: 48px; stroke-width: 1.5; margin-bottom: 12px;"></i>
-                        <p>Chọn một email từ danh sách bên trái để đọc và trả lời.</p>
+                        <p>Chọn một email từ danh sách bên trái để xem nội dung, tệp đính kèm và thao tác.</p>
                     </div>
 
                     <div id="emailDetailContainer" class="email-detail-container">
+                        <!-- Action Toolbar -->
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; border-bottom: 1px solid var(--bg-card-border); padding-bottom: 12px;">
+                            <button class="btn btn-outline" style="padding: 6px 12px; font-size: 12px;" onclick="setReplyMode('reply')">
+                                <i data-lucide="reply"></i> Trả lời
+                            </button>
+                            <button class="btn btn-outline" style="padding: 6px 12px; font-size: 12px;" onclick="setReplyMode('replyAll')">
+                                <i data-lucide="reply-all"></i> Trả lời tất cả
+                            </button>
+                            <button class="btn btn-outline" style="padding: 6px 12px; font-size: 12px;" onclick="setReplyMode('forward')">
+                                <i data-lucide="forward"></i> Chuyển tiếp
+                            </button>
+                            <button class="btn btn-outline" style="padding: 6px 12px; font-size: 12px;" onclick="markEmailAsRead()">
+                                <i data-lucide="check-circle"></i> Đã đọc
+                            </button>
+                            <button class="btn btn-outline" style="padding: 6px 12px; font-size: 12px; color: var(--accent-rose); border-color: rgba(244,63,94,0.3);" onclick="deleteSelectedEmail()">
+                                <i data-lucide="trash-2"></i> Xóa
+                            </button>
+                        </div>
+
                         <div class="card-header" style="margin-bottom: 12px;">
                             <h3 id="detailSubject" style="font-size: 18px;">Chủ đề email</h3>
                         </div>
@@ -636,15 +655,23 @@
                         
                         <div id="detailBody" class="message-box">Nội dung email...</div>
 
-                        <!-- Reply Box -->
+                        <!-- Attachments Container -->
+                        <div id="detailAttachments"></div>
+
+                        <!-- Reply / Forward Box -->
                         <div style="margin-top: 20px; border-top: 1px solid var(--bg-card-border); padding-top: 16px;">
+                            <div id="forwardToContainer" style="display: none; margin-bottom: 12px;">
+                                <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 4px;">Chuyển tiếp đến (To):</label>
+                                <input type="email" id="forwardToInput" class="input" placeholder="recipient@example.com">
+                            </div>
+
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                <label style="font-weight: 600; font-size: 14px;">Trả lời email này:</label>
+                                <label style="font-weight: 600; font-size: 14px;" id="replyBoxTitle">Trả lời email:</label>
                                 <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="generateAiReply()">
                                     <i data-lucide="sparkles"></i> Gemini Viết Hộ
                                 </button>
                             </div>
-                            <textarea id="replyTextarea" rows="5" placeholder="Nhập nội dung trả lời..." style="margin-bottom: 12px;"></textarea>
+                            <textarea id="replyTextarea" rows="5" placeholder="Nhập nội dung..." style="margin-bottom: 12px;"></textarea>
                             <div style="display: flex; justify-content: flex-end; gap: 10px;">
                                 <button class="btn" id="sendReplyBtn" onclick="sendEmailReply()">
                                     <i data-lucide="send"></i> Gửi Trả Lời
@@ -813,6 +840,7 @@
             emails: [],
             calendarEvents: [],
             selectedEmail: null,
+            replyMode: 'reply', // 'reply', 'replyAll', 'forward'
             models: []
         };
 
@@ -948,7 +976,7 @@
 
             const titles = {
                 overview: ['Bảng điều khiển tổng quan', 'Chào mừng trở lại! Dưới đây là thông tin lịch trình & email của bạn.'],
-                gmail: ['Hộp thư Gmail', 'Đọc, duyệt và phản hồi email trực tiếp qua microservice.'],
+                gmail: ['Hộp thư Primary Gmail', 'Đọc, xem tệp đính kèm, phản hồi, chuyển tiếp & xóa 10 email mới nhất.'],
                 calendar: ['Lịch cá nhân', 'Theo dõi và tạo các sự kiện công việc sắp tới.'],
                 gemini: ['Trợ lý Trí tuệ Nhân tạo', 'Đặt câu hỏi và nhận câu trả lời thông minh từ Gemini.'],
                 settings: ['Cấu hình Microservice', 'Quản lý kết nối tới Google Apps Script cá nhân.']
@@ -1045,17 +1073,17 @@
             txt.textContent = `GAS: ${text}`;
         }
 
-        // Load Gmail Data
+        // Load Gmail Data (10 latest emails from Primary tab)
         async function loadGmailData() {
             if (!state.gasUrl) return;
             const overviewList = document.getElementById('overviewEmailList');
             const fullList = document.getElementById('gmailList');
             
-            overviewList.innerHTML = '<p style="color: var(--text-muted);"><span class="spinner"></span> Đang tải email...</p>';
-            fullList.innerHTML = '<p style="color: var(--text-muted);"><span class="spinner"></span> Đang tải email...</p>';
+            overviewList.innerHTML = '<p style="color: var(--text-muted);"><span class="spinner"></span> Đang tải 10 email Primary...</p>';
+            fullList.innerHTML = '<p style="color: var(--text-muted);"><span class="spinner"></span> Đang tải 10 email Primary...</p>';
 
             try {
-                const emails = await fetchFromGas('getEmails', { maxResults: 12 });
+                const emails = await fetchFromGas('getEmails', { maxResults: 10, query: 'category:primary inbox' });
                 state.emails = emails || [];
                 
                 const unreadCount = state.emails.filter(e => e.unread).length;
@@ -1074,8 +1102,8 @@
             const fullList = document.getElementById('gmailList');
 
             if (state.emails.length === 0) {
-                overviewList.innerHTML = '<p style="color: var(--text-muted);">Không có email nào trong Hộp thư đến.</p>';
-                fullList.innerHTML = '<p style="color: var(--text-muted);">Không có email nào.</p>';
+                overviewList.innerHTML = '<p style="color: var(--text-muted);">Không có email nào trong Hộp thư Primary.</p>';
+                fullList.innerHTML = '<p style="color: var(--text-muted);">Không có email nào trong Hộp thư Primary.</p>';
                 return;
             }
 
@@ -1098,6 +1126,7 @@
             const email = state.emails[index];
             if (!email) return;
             state.selectedEmail = email;
+            state.replyMode = 'reply';
 
             document.getElementById('emailDetailPlaceholder').style.display = 'none';
             const container = document.getElementById('emailDetailContainer');
@@ -1109,17 +1138,100 @@
             const lastMsg = email.messages && email.messages.length > 0 ? email.messages[email.messages.length - 1] : null;
             document.getElementById('detailBody').textContent = lastMsg ? lastMsg.body : email.snippet;
 
-            document.getElementById('replyTextarea').value = '';
+            // Render Attachments
+            let allAtts = [];
+            if (email.messages) {
+                email.messages.forEach(m => {
+                    if (m.attachments) allAtts.push(...m.attachments);
+                });
+            }
+
+            const attDiv = document.getElementById('detailAttachments');
+            if (allAtts.length > 0) {
+                attDiv.innerHTML = `
+                    <h4 style="font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="paperclip"></i> Tệp đính kèm (${allAtts.length}):
+                    </h4>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        ${allAtts.map(att => `
+                            <div style="padding: 8px 12px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--bg-card-border); font-size: 13px; display: flex; align-items: center; gap: 8px;">
+                                <i data-lucide="file-text" style="width: 14px; height: 14px; color: var(--primary);"></i>
+                                <span style="font-weight: 500;">${escapeHtml(att.name)}</span>
+                                <span style="color: var(--text-muted); font-size: 11px;">(${formatFileSize(att.size)})</span>
+                                ${att.dataUrl ? `<a href="${att.dataUrl}" download="${escapeHtml(att.name)}" target="_blank" style="color: var(--accent-emerald); font-weight: 600; text-decoration: none; margin-left: 6px;" title="Tải xuống tệp đính kèm"><i data-lucide="download" style="width: 14px; height: 14px;"></i></a>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else {
+                attDiv.innerHTML = '';
+            }
+
+            setReplyMode('reply');
+            lucide.createIcons();
+        }
+
+        // Email Action Modes (reply, replyAll, forward)
+        function setReplyMode(mode) {
+            state.replyMode = mode;
+            const fwdDiv = document.getElementById('forwardToContainer');
+            const title = document.getElementById('replyBoxTitle');
+            const btn = document.getElementById('sendReplyBtn');
+
+            if (mode === 'forward') {
+                fwdDiv.style.display = 'block';
+                title.textContent = 'Chuyển tiếp email này:';
+                btn.innerHTML = '<i data-lucide="forward"></i> Chuyển Tiếp Email';
+            } else if (mode === 'replyAll') {
+                fwdDiv.style.display = 'none';
+                title.textContent = 'Trả lời tất cả (Reply All):';
+                btn.innerHTML = '<i data-lucide="reply-all"></i> Trả Lời Tất Cả';
+            } else {
+                fwdDiv.style.display = 'none';
+                title.textContent = 'Trả lời người gửi (Reply):';
+                btn.innerHTML = '<i data-lucide="send"></i> Gửi Trả Lời';
+            }
+            lucide.createIcons();
+        }
+
+        // Mark Email as Read
+        async function markEmailAsRead() {
+            if (!state.selectedEmail) return;
+            try {
+                await fetchFromGas('markReadEmail', { threadId: state.selectedEmail.threadId });
+                state.selectedEmail.unread = false;
+                renderEmailLists();
+                alert('Đã đánh dấu email là đã đọc!');
+            } catch (err) {
+                alert('Lỗi: ' + err.message);
+            }
+        }
+
+        // Delete Email (Move to Trash)
+        async function deleteSelectedEmail() {
+            if (!state.selectedEmail) return;
+            if (!confirm('Bạn có chắc chắn muốn chuyển email này vào Thùng rác?')) return;
+
+            try {
+                await fetchFromGas('deleteEmail', { threadId: state.selectedEmail.threadId });
+                alert('Đã chuyển email vào Thùng rác!');
+                state.selectedEmail = null;
+                document.getElementById('emailDetailContainer').style.display = 'none';
+                document.getElementById('emailDetailPlaceholder').style.display = 'block';
+                loadGmailData();
+            } catch (err) {
+                alert('Lỗi khi xóa email: ' + err.message);
+            }
         }
 
         // AI Draft Reply with Gemini
         async function generateAiReply() {
-            if (!state.selectedEmail) return alert('Vui lòng chọn email cần trả lời!');
+            if (!state.selectedEmail) return alert('Vui lòng chọn email!');
             const replyBox = document.getElementById('replyTextarea');
             const lastMsg = state.selectedEmail.messages ? state.selectedEmail.messages[state.selectedEmail.messages.length - 1] : null;
             const content = lastMsg ? lastMsg.body : state.selectedEmail.snippet;
 
-            replyBox.value = 'Đang nhờ Gemini soạn bản thảo trả lời...';
+            replyBox.value = 'Đang nhờ Gemini soạn bản thảo...';
 
             try {
                 const prompt = `Bạn là trợ lý cá nhân chuyên nghiệp. Hãy viết một email phản hồi bằng tiếng Việt ngắn gọn, lịch sự cho email dưới đây:\n\nTiêu đề: ${state.selectedEmail.subject}\nNgười gửi: ${state.selectedEmail.sender}\nNội dung:\n${content}`;
@@ -1140,31 +1252,48 @@
             }
         }
 
-        // Send Email Reply
+        // Send Reply / Reply All / Forward
         async function sendEmailReply() {
             if (!state.selectedEmail) return;
             const body = document.getElementById('replyTextarea').value.trim();
-            if (!body) return alert('Vui lòng nhập nội dung trả lời!');
+            const mode = state.replyMode || 'reply';
+
+            if (!body && mode !== 'forward') return alert('Vui lòng nhập nội dung!');
 
             const btn = document.getElementById('sendReplyBtn');
             btn.disabled = true;
-            btn.innerHTML = '<span class="spinner"></span> Đang gửi...';
+            btn.innerHTML = '<span class="spinner"></span> Đang xử lý...';
 
             try {
-                await fetchFromGas('replyEmail', {
-                    threadId: state.selectedEmail.threadId,
-                    messageId: state.selectedEmail.messageId,
-                    body: body
-                });
-                alert('Đã gửi phản hồi email thành công!');
+                if (mode === 'forward') {
+                    const to = document.getElementById('forwardToInput').value.trim();
+                    if (!to) return alert('Vui lòng nhập email người nhận chuyển tiếp (To)!');
+                    await fetchFromGas('forwardEmail', {
+                        threadId: state.selectedEmail.threadId,
+                        to: to,
+                        body: body
+                    });
+                    alert('Đã chuyển tiếp email thành công!');
+                } else if (mode === 'replyAll') {
+                    await fetchFromGas('replyAllEmail', {
+                        threadId: state.selectedEmail.threadId,
+                        body: body
+                    });
+                    alert('Đã gửi Reply All thành công!');
+                } else {
+                    await fetchFromGas('replyEmail', {
+                        threadId: state.selectedEmail.threadId,
+                        body: body
+                    });
+                    alert('Đã gửi phản hồi thành công!');
+                }
                 document.getElementById('replyTextarea').value = '';
                 loadGmailData();
             } catch (err) {
-                alert('Lỗi khi gửi email: ' + err.message);
+                alert('Lỗi: ' + err.message);
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '<i data-lucide="send"></i> Gửi Trả Lời';
-                lucide.createIcons();
+                setReplyMode(mode);
             }
         }
 
@@ -1352,9 +1481,17 @@
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
-        // Copy GAS Code helper
+        // Helpers
         function copyGasCode() {
             window.open('/gas_microservice.gs', '_blank');
+        }
+
+        function formatFileSize(bytes) {
+            if (!bytes) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
         }
 
         function escapeHtml(str) {
