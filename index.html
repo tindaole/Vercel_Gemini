@@ -683,9 +683,9 @@
                         <div class="card-header" style="margin-bottom: 12px;">
                             <h3 id="detailSubject" style="font-size: 18px;">Chủ đề email</h3>
                         </div>
-                        <p id="detailSender" style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Từ: sender@example.com</p>
-                        
-                        <div id="detailBody" class="message-box">Nội dung email...</div>
+                        <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid var(--bg-card-border); border-radius: 12px; overflow: hidden; margin-bottom: 16px;">
+                            <iframe id="emailHtmlIframe" style="width: 100%; border: none; min-height: 220px; background: transparent; display: block;" sandbox="allow-popups allow-same-origin"></iframe>
+                        </div>
 
                         <!-- Attachments Container -->
                         <div id="detailAttachments"></div>
@@ -1247,7 +1247,10 @@
             document.getElementById('detailSender').textContent = `Từ: ${email.sender} | Ngày: ${new Date(email.date).toLocaleString('vi-VN')}`;
             
             const lastMsg = email.messages && email.messages.length > 0 ? email.messages[email.messages.length - 1] : null;
-            document.getElementById('detailBody').textContent = lastMsg ? lastMsg.body : email.snippet;
+
+            const htmlContent = lastMsg ? (lastMsg.htmlBody || lastMsg.body) : email.snippet;
+            const plainContent = lastMsg ? (lastMsg.plainBody || lastMsg.body) : email.snippet;
+            renderEmailInIframe(htmlContent, plainContent);
 
             // Render Attachments
             let allAtts = [];
@@ -1280,6 +1283,63 @@
 
             setReplyMode('reply');
             lucide.createIcons();
+        }
+
+        // Render HTML Email Content inside Isolated Iframe
+        function renderEmailInIframe(htmlContent, plainContent) {
+            const iframe = document.getElementById('emailHtmlIframe');
+            if (!iframe) return;
+
+            const isDark = state.theme === 'dark';
+            const textColor = isDark ? '#f8fafc' : '#0f172a';
+            const linkColor = isDark ? '#818cf8' : '#4f46e5';
+
+            let bodyHtml = '';
+            if (htmlContent && htmlContent.trim()) {
+                bodyHtml = htmlContent;
+            } else if (plainContent) {
+                bodyHtml = `<pre style="white-space: pre-wrap; word-wrap: break-word; font-family: inherit; font-size: 14px;">${escapeHtml(plainContent)}</pre>`;
+            } else {
+                bodyHtml = '<p style="color: #94a3b8; font-style: italic;">(Không có nội dung)</p>';
+            }
+
+            const doc = iframe.contentDocument || iframe.contentWindow.document;
+            doc.open();
+            doc.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <style>
+                        body {
+                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                            font-size: 14px;
+                            line-height: 1.6;
+                            color: ${textColor};
+                            background-color: transparent;
+                            margin: 0;
+                            padding: 16px;
+                            word-wrap: break-word;
+                            overflow-x: auto;
+                        }
+                        a { color: ${linkColor}; text-decoration: underline; }
+                        img { max-width: 100% !important; height: auto !important; border-radius: 8px; }
+                        table { max-width: 100% !important; border-collapse: collapse; }
+                        blockquote { border-left: 3px solid rgba(255,255,255,0.2); margin: 10px 0; padding-left: 12px; opacity: 0.85; }
+                        pre { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px; overflow-x: auto; }
+                    </style>
+                </head>
+                <body>${bodyHtml}</body>
+                </html>
+            `);
+            doc.close();
+
+            setTimeout(() => {
+                try {
+                    const contentHeight = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight, 180);
+                    iframe.style.height = (contentHeight + 20) + 'px';
+                } catch(e) {}
+            }, 150);
         }
 
         // Email Action Modes (reply, replyAll, forward)

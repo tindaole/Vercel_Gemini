@@ -225,7 +225,9 @@ function getEmails(maxResults, query) {
           date: m.getDate().toISOString(),
           subject: m.getSubject(),
           snippet: getSnippetText(m),
-          body: m.getPlainBody() || m.getBody(),
+          htmlBody: m.getBody() || "",
+          plainBody: m.getPlainBody() || "",
+          body: m.getBody() || m.getPlainBody() || "",
           attachments: attachments
         };
       })
