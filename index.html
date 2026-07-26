@@ -423,8 +423,8 @@
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(8px);
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(10px);
             z-index: 100;
             align-items: center;
             justify-content: center;
@@ -462,6 +462,30 @@
     </style>
 </head>
 <body>
+
+    <!-- Password Lock Screen Overlay -->
+    <div id="authLockOverlay" class="modal open" style="z-index: 9999; background: var(--bg-body);">
+        <div class="modal-content" style="max-width: 420px; text-align: center; border: 1px solid var(--bg-card-border); background: var(--sidebar-bg);">
+            <div style="width: 56px; height: 56px; border-radius: 16px; background: linear-gradient(135deg, var(--primary), var(--accent-purple)); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto; color: white; box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);">
+                <i data-lucide="lock" style="width: 28px; height: 28px;"></i>
+            </div>
+            
+            <h2 style="font-size: 22px; font-weight: 700; margin-bottom: 8px;">MyBoard Security</h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 24px; line-height: 1.5;">
+                Vui lòng nhập mật khẩu để truy cập workspace.<br>
+                <span style="font-size: 12px; opacity: 0.8;">(Phiên đăng nhập tự động kết thúc sau 15 phút)</span>
+            </p>
+
+            <form onsubmit="submitPasswordAuth(event)" style="display: flex; flex-direction: column; gap: 14px;">
+                <input type="password" id="authPasswordInput" class="input" placeholder="Nhập mật khẩu..." autofocus required style="text-align: center; font-size: 16px; letter-spacing: 2px;">
+                <button type="submit" class="btn" id="authSubmitBtn" style="width: 100%; justify-content: center; padding: 12px;">
+                    <i data-lucide="key"></i> Mở Khóa Workspace
+                </button>
+            </form>
+
+            <div id="authErrorBox" style="display: none; margin-top: 16px; padding: 10px 14px; border-radius: 8px; background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); font-size: 13px; text-align: center;"></div>
+        </div>
+    </div>
 
     <!-- Sidebar Navigation -->
     <aside class="sidebar">
@@ -520,9 +544,18 @@
                 <h1 id="viewTitle">Bảng điều khiển tổng quan</h1>
                 <p id="viewSubtitle">Chào mừng trở lại! Dưới đây là thông tin lịch trình & email của bạn.</p>
             </div>
-            <div class="status-pill">
-                <div class="dot" id="gasStatusDot"></div>
-                <span id="gasStatusText">GAS Microservice: Chưa cấu hình</span>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="status-pill" id="sessionPill" style="display: none; border-color: rgba(245, 158, 11, 0.3);">
+                    <i data-lucide="clock" style="width: 14px; height: 14px; color: var(--accent-amber);"></i>
+                    <span id="sessionTimerText" style="font-family: monospace; font-weight: 600;">15:00</span>
+                </div>
+                <button class="btn btn-outline" style="padding: 6px 12px; font-size: 12px; color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.3);" onclick="lockBoardManually()" title="Khóa trang ngay lập tức">
+                    <i data-lucide="log-out"></i> Khóa trang
+                </button>
+                <div class="status-pill">
+                    <div class="dot" id="gasStatusDot"></div>
+                    <span id="gasStatusText">GAS: Chưa cấu hình</span>
+                </div>
             </div>
         </header>
 
@@ -783,10 +816,13 @@
             models: []
         };
 
+        let sessionInterval = null;
+
         // Initialize App
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             applyTheme(state.theme);
+            checkSession();
             if (state.gasUrl) {
                 document.getElementById('gasUrlInput').value = state.gasUrl;
                 testGasConnection(false);
@@ -795,6 +831,98 @@
             }
             loadGeminiModels();
         });
+
+        // Password & Session Management
+        function checkSession() {
+            const expiresAt = localStorage.getItem('myboard_auth_expires_at');
+            if (!expiresAt || Date.now() > Number(expiresAt)) {
+                lockBoard();
+            } else {
+                unlockBoard();
+            }
+        }
+
+        function unlockBoard() {
+            document.getElementById('authLockOverlay').classList.remove('open');
+            document.getElementById('sessionPill').style.display = 'inline-flex';
+            startSessionTimer();
+        }
+
+        function lockBoard() {
+            localStorage.removeItem('myboard_auth_expires_at');
+            if (sessionInterval) clearInterval(sessionInterval);
+            document.getElementById('sessionPill').style.display = 'none';
+            document.getElementById('authLockOverlay').classList.add('open');
+            document.getElementById('authPasswordInput').value = '';
+            document.getElementById('authErrorBox').style.display = 'none';
+            lucide.createIcons();
+        }
+
+        function lockBoardManually() {
+            lockBoard();
+        }
+
+        function startSessionTimer() {
+            if (sessionInterval) clearInterval(sessionInterval);
+
+            function updateTimer() {
+                const expiresAt = Number(localStorage.getItem('myboard_auth_expires_at') || 0);
+                const remainingMs = expiresAt - Date.now();
+
+                if (remainingMs <= 0) {
+                    lockBoard();
+                    alert('Phiên đăng nhập đã hết hạn (15 phút). Vui lòng nhập lại mật khẩu!');
+                    return;
+                }
+
+                const totalSeconds = Math.floor(remainingMs / 1000);
+                const mins = Math.floor(totalSeconds / 60);
+                const secs = totalSeconds % 60;
+                document.getElementById('sessionTimerText').textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            }
+
+            updateTimer();
+            sessionInterval = setInterval(updateTimer, 1000);
+        }
+
+        async function submitPasswordAuth(event) {
+            event.preventDefault();
+            const password = document.getElementById('authPasswordInput').value;
+            const btn = document.getElementById('authSubmitBtn');
+            const errBox = document.getElementById('authErrorBox');
+
+            if (!password) return;
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Đang xác thực...';
+            errBox.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Xác thực thất bại');
+
+                localStorage.setItem('myboard_auth_expires_at', data.expiresAt);
+                unlockBoard();
+
+                if (state.gasUrl) {
+                    loadGmailData();
+                    loadCalendarData();
+                }
+            } catch (err) {
+                errBox.textContent = err.message;
+                errBox.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="key"></i> Mở Khóa Workspace';
+                lucide.createIcons();
+            }
+        }
 
         // Theme Toggle
         function toggleTheme() {
@@ -1226,7 +1354,6 @@
 
         // Copy GAS Code helper
         function copyGasCode() {
-            const code = `/** Copy this code to Google Apps Script (script.google.com) **/`;
             window.open('/gas_microservice.gs', '_blank');
         }
 
