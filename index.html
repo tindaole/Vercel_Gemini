@@ -3,147 +3,1237 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Proxy Gemini</title>
+    <title>MyBoard - Personal Workspace & Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; padding: 20px; max-width: 800px; margin: 0 auto; }
-        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        :root {
+            --bg-body: #0f172a;
+            --bg-card: rgba(30, 41, 59, 0.7);
+            --bg-card-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --accent-purple: #8b5cf6;
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-rose: #f43f5e;
+            --sidebar-bg: #1e293b;
+            --shadow-glow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        [data-theme="light"] {
+            --bg-body: #f1f5f9;
+            --bg-card: rgba(255, 255, 255, 0.85);
+            --bg-card-border: rgba(0, 0, 0, 0.08);
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --sidebar-bg: #ffffff;
+            --shadow-glow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; transition: background-color 0.2s, border-color 0.2s; }
         
-        .control-group { margin-bottom: 15px; }
-        label { font-weight: bold; display: block; margin-bottom: 5px; color: #333; }
-        select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; background: #fff; }
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 260px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--bg-card-border);
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            position: fixed;
+            height: 100vh;
+            z-index: 10;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 12px;
+        }
+
+        .brand-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--primary), var(--accent-purple));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .brand-title {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff, var(--text-muted));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        [data-theme="light"] .brand-title {
+            background: linear-gradient(135deg, var(--primary), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .nav-item button {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            text-align: left;
+            transition: all 0.2s ease;
+        }
+
+        .nav-item button:hover {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--text-main);
+        }
+
+        .nav-item button.active {
+            background: linear-gradient(135deg, var(--primary), var(--accent-purple));
+            color: white;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+        }
+
+        .badge {
+            margin-left: auto;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        .theme-toggle {
+            margin-top: auto;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid var(--bg-card-border);
+            cursor: pointer;
+        }
+
+        /* Main Content Layout */
+        .main-content {
+            margin-left: 260px;
+            flex: 1;
+            padding: 32px;
+            max-width: 1300px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+        }
+
+        .header-title h1 {
+            font-size: 26px;
+            font-weight: 700;
+        }
+
+        .header-title p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--bg-card-border);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-amber);
+        }
+
+        .dot.connected { background: var(--accent-emerald); box-shadow: 0 0 8px var(--accent-emerald); }
+        .dot.disconnected { background: var(--accent-rose); }
+
+        /* Views / Sections */
+        .tab-view {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .tab-view.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Grid Cards */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--bg-card-border);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--shadow-glow);
+            margin-bottom: 24px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Buttons & Controls */
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
         
-        textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; height: 120px; margin-bottom: 15px; font-family: inherit; box-sizing: border-box;}
-        button { background: #1a73e8; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; transition: background 0.2s;}
-        button:hover { background: #1557b0; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
-        
-        #response { margin-top: 20px; line-height: 1.6; border-top: 1px solid #eee; padding-top: 20px;}
-        .loading { display: none; color: #666; font-style: italic; margin-top: 10px; }
-        .error { color: #d93025; background: #fce8e6; padding: 10px; border-radius: 6px; margin-top: 10px; display: none; }
-        pre { background: #f4f4f4; padding: 10px; border-radius: 5px; overflow-x: auto; }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--bg-card-border);
+            color: var(--text-main);
+        }
+        .btn-outline:hover { background: rgba(255, 255, 255, 0.08); }
+
+        .btn-secondary {
+            background: rgba(139, 92, 246, 0.15);
+            color: var(--accent-purple);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+        .btn-secondary:hover { background: rgba(139, 92, 246, 0.25); }
+
+        .input, select, textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--bg-card-border);
+            background: rgba(15, 23, 42, 0.5);
+            color: var(--text-main);
+            font-size: 14px;
+            outline: none;
+        }
+
+        [data-theme="light"] .input, 
+        [data-theme="light"] select, 
+        [data-theme="light"] textarea {
+            background: #ffffff;
+        }
+
+        .input:focus, select:focus, textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        /* Calendar Items */
+        .event-list { display: flex; flex-direction: column; gap: 12px; }
+        .event-card {
+            display: flex;
+            align-items: center;
+            padding: 14px 18px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--bg-card-border);
+            gap: 16px;
+        }
+        .event-time-badge {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 12px;
+            background: rgba(99, 102, 241, 0.15);
+            border-radius: 8px;
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 12px;
+            min-width: 60px;
+        }
+
+        /* Gmail List */
+        .email-list { display: flex; flex-direction: column; gap: 10px; }
+        .email-item {
+            padding: 16px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--bg-card-border);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .email-item:hover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.05);
+        }
+        .email-item.unread {
+            border-left: 4px solid var(--primary);
+        }
+        .email-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+        .email-subject {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .email-snippet {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-clamp: 2;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        /* Thread Reader & Reply Box */
+        .email-detail-container {
+            display: none;
+            animation: fadeIn 0.2s ease-in;
+        }
+        .message-box {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid var(--bg-card-border);
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 16px;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        /* Chat / Gemini View */
+        .chat-messages {
+            height: 420px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding-right: 8px;
+            margin-bottom: 20px;
+        }
+        .chat-bubble {
+            max-width: 85%;
+            padding: 14px 18px;
+            border-radius: 16px;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+        .chat-bubble.user {
+            align-self: flex-end;
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .chat-bubble.ai {
+            align-self: flex-start;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--bg-card-border);
+            border-bottom-left-radius: 4px;
+        }
+        .chat-bubble pre {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 8px 0;
+        }
+
+        /* Modal Overlay */
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal.open { display: flex; }
+        .modal-content {
+            background: var(--sidebar-bg);
+            border: 1px solid var(--bg-card-border);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 550px;
+            padding: 28px;
+            box-shadow: var(--shadow-glow);
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 900px) {
+            .sidebar { width: 70px; padding: 16px 8px; }
+            .brand-title, .nav-item span, .badge { display: none; }
+            .main-content { margin-left: 70px; padding: 16px; }
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
-<div class="container">
-    <h2>Trợ lý Gemini (Server Proxy)</h2>
-    
-    <div class="control-group">
-        <label for="modelSelect">Chọn Model:</label>
-        <select id="modelSelect">
-            <option value="" disabled selected>Đang tải danh sách model...</option>
-        </select>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-icon"><i data-lucide="layout-dashboard"></i></div>
+            <span class="brand-title">MyBoard</span>
+        </div>
+
+        <ul class="nav-list">
+            <li class="nav-item">
+                <button class="active" onclick="switchTab('overview', this)">
+                    <i data-lucide="home"></i>
+                    <span>Tổng quan</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button onclick="switchTab('gmail', this)">
+                    <i data-lucide="mail"></i>
+                    <span>Gmail Inbox</span>
+                    <span class="badge" id="navEmailBadge">0</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button onclick="switchTab('calendar', this)">
+                    <i data-lucide="calendar"></i>
+                    <span>Lịch công việc</span>
+                    <span class="badge" id="navCalBadge">0</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button onclick="switchTab('gemini', this)">
+                    <i data-lucide="bot"></i>
+                    <span>Trợ lý Gemini</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button onclick="switchTab('settings', this)">
+                    <i data-lucide="settings"></i>
+                    <span>Cấu hình GAS</span>
+                </button>
+            </li>
+        </ul>
+
+        <div class="theme-toggle" onclick="toggleTheme()">
+            <span style="font-size: 13px; font-weight: 500;" id="themeLabel">Giao diện tối</span>
+            <i data-lucide="moon" id="themeIcon"></i>
+        </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="main-content">
+        
+        <!-- Header -->
+        <header class="header">
+            <div class="header-title">
+                <h1 id="viewTitle">Bảng điều khiển tổng quan</h1>
+                <p id="viewSubtitle">Chào mừng trở lại! Dưới đây là thông tin lịch trình & email của bạn.</p>
+            </div>
+            <div class="status-pill">
+                <div class="dot" id="gasStatusDot"></div>
+                <span id="gasStatusText">GAS Microservice: Chưa cấu hình</span>
+            </div>
+        </header>
+
+        <!-- VIEW 1: OVERVIEW -->
+        <section id="view-overview" class="tab-view active">
+            <div class="grid-3">
+                <div class="card" style="border-top: 4px solid var(--primary);">
+                    <div class="card-title"><i data-lucide="mail" style="color: var(--primary);"></i> Email chưa đọc</div>
+                    <h2 style="font-size: 36px; margin: 12px 0;" id="statUnreadCount">--</h2>
+                    <p style="font-size: 13px; color: var(--text-muted);">Cập nhật từ hộp thư Gmail cá nhân</p>
+                </div>
+                <div class="card" style="border-top: 4px solid var(--accent-purple);">
+                    <div class="card-title"><i data-lucide="calendar" style="color: var(--accent-purple);"></i> Sự kiện sắp tới</div>
+                    <h2 style="font-size: 36px; margin: 12px 0;" id="statCalCount">--</h2>
+                    <p style="font-size: 13px; color: var(--text-muted);">Trong 7 ngày tiếp theo</p>
+                </div>
+                <div class="card" style="border-top: 4px solid var(--accent-emerald);">
+                    <div class="card-title"><i data-lucide="sparkles" style="color: var(--accent-emerald);"></i> Gemini AI</div>
+                    <h2 style="font-size: 20px; margin: 16px 0; color: var(--accent-emerald);">Sẵn sàng hỗ trợ</h2>
+                    <p style="font-size: 13px; color: var(--text-muted);">Soạn email & giải đáp câu hỏi</p>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <!-- Recent Emails Preview -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title"><i data-lucide="mail"></i> Email gần đây</div>
+                        <button class="btn btn-outline" style="padding: 6px 12px; font-size: 12px;" onclick="loadGmailData()">Tải lại</button>
+                    </div>
+                    <div id="overviewEmailList" class="email-list">
+                        <p style="color: var(--text-muted); font-size: 14px;">Đang tải danh sách email...</p>
+                    </div>
+                </div>
+
+                <!-- Upcoming Calendar Preview -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title"><i data-lucide="calendar"></i> Lịch sắp tới</div>
+                        <button class="btn btn-outline" style="padding: 6px 12px; font-size: 12px;" onclick="loadCalendarData()">Tải lại</button>
+                    </div>
+                    <div id="overviewCalList" class="event-list">
+                        <p style="color: var(--text-muted); font-size: 14px;">Đang tải danh sách sự kiện...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 2: GMAIL INBOX & REPLY -->
+        <section id="view-gmail" class="tab-view">
+            <div class="grid-2">
+                <!-- Email List Panel -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title"><i data-lucide="inbox"></i> Hộp thư đến</div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-outline" onclick="openNewEmailModal()"><i data-lucide="plus"></i> Soạn thư</button>
+                            <button class="btn btn-outline" onclick="loadGmailData()"><i data-lucide="refresh-cw"></i></button>
+                        </div>
+                    </div>
+                    <div id="gmailList" class="email-list">
+                        <p style="color: var(--text-muted);">Đang kết nối đến microservice Gmail...</p>
+                    </div>
+                </div>
+
+                <!-- Email Detail & Reply Panel -->
+                <div class="card">
+                    <div id="emailDetailPlaceholder" style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
+                        <i data-lucide="mail-open" style="width: 48px; height: 48px; stroke-width: 1.5; margin-bottom: 12px;"></i>
+                        <p>Chọn một email từ danh sách bên trái để đọc và trả lời.</p>
+                    </div>
+
+                    <div id="emailDetailContainer" class="email-detail-container">
+                        <div class="card-header" style="margin-bottom: 12px;">
+                            <h3 id="detailSubject" style="font-size: 18px;">Chủ đề email</h3>
+                        </div>
+                        <p id="detailSender" style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Từ: sender@example.com</p>
+                        
+                        <div id="detailBody" class="message-box">Nội dung email...</div>
+
+                        <!-- Reply Box -->
+                        <div style="margin-top: 20px; border-top: 1px solid var(--bg-card-border); padding-top: 16px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <label style="font-weight: 600; font-size: 14px;">Trả lời email này:</label>
+                                <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="generateAiReply()">
+                                    <i data-lucide="sparkles"></i> Gemini Viết Hộ
+                                </button>
+                            </div>
+                            <textarea id="replyTextarea" rows="5" placeholder="Nhập nội dung trả lời..." style="margin-bottom: 12px;"></textarea>
+                            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                                <button class="btn" id="sendReplyBtn" onclick="sendEmailReply()">
+                                    <i data-lucide="send"></i> Gửi Trả Lời
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 3: CALENDAR -->
+        <section id="view-calendar" class="tab-view">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i data-lucide="calendar"></i> Sự kiện & Lịch hẹn (7 ngày tới)</div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn" onclick="openNewEventModal()"><i data-lucide="calendar-plus"></i> Thêm sự kiện mới</button>
+                        <button class="btn btn-outline" onclick="loadCalendarData()"><i data-lucide="refresh-cw"></i> Cập nhật</button>
+                    </div>
+                </div>
+
+                <div id="calendarEventsFullList" class="event-list" style="gap: 16px;">
+                    <p style="color: var(--text-muted);">Đang tải lịch từ Google Calendar...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 4: GEMINI CHAT -->
+        <section id="view-gemini" class="tab-view">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i data-lucide="bot"></i> Trợ lý Trí tuệ Nhân tạo Gemini</div>
+                    <div style="width: 220px;">
+                        <select id="chatModelSelect">
+                            <option value="" disabled selected>Đang tải model...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="chat-messages" id="chatMessages">
+                    <div class="chat-bubble ai">
+                        <strong>Gemini AI:</strong><br>
+                        Xin chào! Tôi có thể giúp bạn giải đáp thắc mắc, tóm tắt thông tin hoặc soạn thảo tài liệu. Hãy đặt câu hỏi bất kỳ!
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="chatPromptInput" class="input" placeholder="Hỏi Gemini điều gì đó..." onkeydown="if(event.key==='Enter') sendChatMessage()">
+                    <button class="btn" id="chatSendBtn" onclick="sendChatMessage()"><i data-lucide="send"></i> Gửi</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 5: SETTINGS -->
+        <section id="view-settings" class="tab-view">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i data-lucide="settings"></i> Cấu hình Google Apps Script Microservice</div>
+                </div>
+
+                <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px; line-height: 1.6;">
+                    Để xem và trả lời email cũng như đồng bộ lịch Google Calendar cá nhân một cách an toàn mà không cần đăng nhập Google trực tiếp trên máy công ty, hãy dán đường dẫn Web App của bạn bên dưới.
+                </p>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px;">Google Apps Script Web App URL:</label>
+                    <input type="url" id="gasUrlInput" class="input" placeholder="https://script.google.com/macros/s/.../exec">
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+                    <button class="btn" onclick="saveAndTestGasUrl()"><i data-lucide="save"></i> Lưu & Kiểm Tra Kết Nối</button>
+                    <button class="btn btn-outline" onclick="copyGasCode()"><i data-lucide="copy"></i> Sao chép mã Google Apps Script (.gs)</button>
+                </div>
+
+                <div id="gasTestResult" style="display: none; padding: 14px; border-radius: 10px; font-size: 14px;"></div>
+            </div>
+
+            <!-- Setup Instructions -->
+            <div class="card">
+                <div class="card-title" style="margin-bottom: 16px;"><i data-lucide="help-circle"></i> Hướng dẫn cài đặt Microservice (3 Phút)</div>
+                <ol style="color: var(--text-muted); font-size: 14px; line-height: 1.8; padding-left: 20px;">
+                    <li>Mở trang <a href="https://script.google.com" target="_blank" style="color: var(--primary);">Google Apps Script (script.google.com)</a> với tài khoản Google cá nhân của bạn.</li>
+                    <li>Tạo một dự án mới (<strong>New project</strong>), xóa toàn bộ mã mặc định và dán đoạn mã từ file <code>gas_microservice.gs</code> (hoặc bấm nút "Sao chép mã" ở trên).</li>
+                    <li>Bấm nút <strong>Deploy</strong> &rarr; <strong>New deployment</strong>.</li>
+                    <li>Chọn loại: <strong>Web app</strong>, thiết lập <i>Execute as: Me</i> và <i>Who has access: Anyone</i>.</li>
+                    <li>Bấm <strong>Deploy</strong>, chấp nhận quyền truy cập (Gmail & Calendar) và sao chép đường dẫn <strong>Web App URL</strong> dán vào ô cấu hình ở trên!</li>
+                </ol>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal: New Calendar Event -->
+    <div id="newEventModal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center;">
+                <span>Tạo sự kiện lịch mới</span>
+                <i data-lucide="x" style="cursor: pointer;" onclick="closeModal('newEventModal')"></i>
+            </h3>
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+                <div>
+                    <label style="font-size: 13px; font-weight: 600;">Tên sự kiện / Cuộc họp:</label>
+                    <input type="text" id="eventTitleInput" class="input" placeholder="Ví dụ: Họp nhóm dự án">
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 13px; font-weight: 600;">Thời gian bắt đầu:</label>
+                        <input type="datetime-local" id="eventStartInput" class="input">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 13px; font-weight: 600;">Thời gian kết thúc:</label>
+                        <input type="datetime-local" id="eventEndInput" class="input">
+                    </div>
+                </div>
+                <div>
+                    <label style="font-size: 13px; font-weight: 600;">Địa điểm (không bắt buộc):</label>
+                    <input type="text" id="eventLocInput" class="input" placeholder="Phòng họp / Google Meet">
+                </div>
+                <div>
+                    <label style="font-size: 13px; font-weight: 600;">Mô tả:</label>
+                    <textarea id="eventDescInput" rows="3" class="input" placeholder="Ghi chú nội dung..."></textarea>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px;">
+                    <button class="btn btn-outline" onclick="closeModal('newEventModal')">Hủy</button>
+                    <button class="btn" id="saveEventBtn" onclick="submitCreateEvent()">Tạo sự kiện</button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <textarea id="prompt" placeholder="Nhập câu hỏi của bạn..."></textarea>
-    
-    <button id="sendBtn" onclick="sendToServer()">Gửi yêu cầu</button>
+    <!-- Modal: New Email -->
+    <div id="newEmailModal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center;">
+                <span>Soạn email mới</span>
+                <i data-lucide="x" style="cursor: pointer;" onclick="closeModal('newEmailModal')"></i>
+            </h3>
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+                <div>
+                    <label style="font-size: 13px; font-weight: 600;">Người nhận (To):</label>
+                    <input type="email" id="emailToInput" class="input" placeholder="example@gmail.com">
+                </div>
+                <div>
+                    <label style="font-size: 13px; font-weight: 600;">Tiêu đề (Subject):</label>
+                    <input type="text" id="emailSubjectInput" class="input" placeholder="Nhập tiêu đề...">
+                </div>
+                <div>
+                    <label style="font-size: 13px; font-weight: 600;">Nội dung:</label>
+                    <textarea id="emailBodyInput" rows="6" class="input" placeholder="Nhập nội dung thư..."></textarea>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px;">
+                    <button class="btn btn-outline" onclick="closeModal('newEmailModal')">Hủy</button>
+                    <button class="btn" id="sendNewEmailBtn" onclick="submitSendNewEmail()"><i data-lucide="send"></i> Gửi Email</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <div id="loading" class="loading">Đang kết nối...</div>
-    <div id="errorBox" class="error"></div>
-    <div id="result"></div>
-</div>
+    <!-- App Application Script -->
+    <script>
+        // Store Global App State
+        const state = {
+            gasUrl: localStorage.getItem('myboard_gas_url') || '',
+            theme: localStorage.getItem('myboard_theme') || 'dark',
+            emails: [],
+            calendarEvents: [],
+            selectedEmail: null,
+            models: []
+        };
 
-<script>
-    const modelSelect = document.getElementById('modelSelect');
-    const resultDiv = document.getElementById("result");
-    const errorBox = document.getElementById("errorBox");
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            applyTheme(state.theme);
+            if (state.gasUrl) {
+                document.getElementById('gasUrlInput').value = state.gasUrl;
+                testGasConnection(false);
+            } else {
+                updateGasStatus(false, 'Chưa cấu hình Web App URL');
+            }
+            loadGeminiModels();
+        });
 
-    // 1. Tự động tải danh sách Model khi mở trang
-    async function loadModels() {
-        try {
-            const response = await fetch('/api/models');
-            const data = await response.json();
-            
-            if (!data.models) throw new Error("Không tìm thấy danh sách model");
-
-            modelSelect.innerHTML = ""; // Xóa option chờ
-            
-            // Lọc và hiển thị model
-            // Chỉ lấy các model hỗ trợ 'generateContent'
-            const chatModels = data.models.filter(m => 
-                m.supportedGenerationMethods && 
-                m.supportedGenerationMethods.includes("generateContent")
-            );
-
-            // if (chatModels.length === 0) {
-            //      modelSelect.innerHTML = "<option>Không có model chat nào khả dụng</option>";
-            //      return;
-            // }
-            
-            // const option = document.createElement('option');
-            // option.value = "gemini-2.5-flash"; // Ví dụ: models/gemini-1.5-flash
-            // option.text = "gemini-2.5-flash 001";
-            
-            // // Ưu tiên chọn sẵn gemini-2.5-flash hoặc gemini-pro nếu có
-            // option.selected = true;
-            
-            // modelSelect.appendChild(option);
-            chatModels.forEach(model => {
-                const option = document.createElement('option');
-                option.value = model.name; // Ví dụ: models/gemini-1.5-flash
-                option.text = `${model.displayName} (${model.version})`;
-                
-                // Ưu tiên chọn sẵn gemini-1.5-flash hoặc gemini-pro nếu có
-                if (model.name.includes("gemini-1.5-flash")) option.selected = true;
-                
-                modelSelect.appendChild(option);
-            });
-
-        } catch (err) {
-            modelSelect.innerHTML = "<option>Lỗi tải model</option>";
-            showError("Không tải được danh sách Model: " + err.message);
+        // Theme Toggle
+        function toggleTheme() {
+            state.theme = state.theme === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('myboard_theme', state.theme);
+            applyTheme(state.theme);
         }
-    }
 
-    // Gọi hàm tải model ngay lập tức
-    loadModels();
-
-    // 2. Hàm gửi tin nhắn
-    async function sendToServer() {
-        const prompt = document.getElementById("prompt").value.trim();
-        const selectedModel = modelSelect.value;
-        const loadingDiv = document.getElementById("loading");
-        const sendBtn = document.getElementById("sendBtn");
-
-        // Reset giao diện
-        errorBox.style.display = "none";
-        resultDiv.innerHTML = "";
-        
-        if (!prompt) return alert("Vui lòng nhập câu hỏi!");
-        if (!selectedModel) return alert("Vui lòng chọn một model!");
-
-        sendBtn.disabled = true;
-        loadingDiv.style.display = "block";
-
-        try {
-            const response = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    prompt: prompt,
-                    model: selectedModel // Gửi kèm tên model đã chọn
-                })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) throw new Error(data.error || "Lỗi kết nối");
-
-            resultDiv.innerHTML = marked.parse(data.result);
-
-        } catch (error) {
-            showError(error.message);
-        } finally {
-            sendBtn.disabled = false;
-            loadingDiv.style.display = "none";
+        function applyTheme(theme) {
+            document.body.setAttribute('data-theme', theme);
+            document.getElementById('themeLabel').textContent = theme === 'dark' ? 'Giao diện tối' : 'Giao diện sáng';
+            document.getElementById('themeIcon').setAttribute('data-lucide', theme === 'dark' ? 'moon' : 'sun');
+            lucide.createIcons();
         }
-    }
 
-    function showError(msg) {
-        errorBox.textContent = "Lỗi: " + msg;
-        errorBox.style.display = "block";
-    }
-</script>
+        // Tab Navigation
+        function switchTab(tabId, btnElement) {
+            document.querySelectorAll('.tab-view').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item button').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(`view-${tabId}`).classList.add('active');
+            if (btnElement) btnElement.classList.add('active');
+
+            const titles = {
+                overview: ['Bảng điều khiển tổng quan', 'Chào mừng trở lại! Dưới đây là thông tin lịch trình & email của bạn.'],
+                gmail: ['Hộp thư Gmail', 'Đọc, duyệt và phản hồi email trực tiếp qua microservice.'],
+                calendar: ['Lịch cá nhân', 'Theo dõi và tạo các sự kiện công việc sắp tới.'],
+                gemini: ['Trợ lý Trí tuệ Nhân tạo', 'Đặt câu hỏi và nhận câu trả lời thông minh từ Gemini.'],
+                settings: ['Cấu hình Microservice', 'Quản lý kết nối tới Google Apps Script cá nhân.']
+            };
+
+            if (titles[tabId]) {
+                document.getElementById('viewTitle').textContent = titles[tabId][0];
+                document.getElementById('viewSubtitle').textContent = titles[tabId][1];
+            }
+
+            if ((tabId === 'gmail' || tabId === 'overview') && state.emails.length === 0 && state.gasUrl) {
+                loadGmailData();
+            }
+            if ((tabId === 'calendar' || tabId === 'overview') && state.calendarEvents.length === 0 && state.gasUrl) {
+                loadCalendarData();
+            }
+        }
+
+        // GAS Microservice Communication Helper
+        async function fetchFromGas(action, params = {}, method = 'GET') {
+            if (!state.gasUrl) {
+                throw new Error("Chưa cấu hình đường dẫn Google Apps Script Web App URL!");
+            }
+
+            let url = state.gasUrl;
+            let options = {};
+
+            const isReadAction = action === 'ping' || action === 'getEmails' || action === 'getCalendarEvents' || method.toUpperCase() === 'GET';
+
+            if (isReadAction) {
+                const queryParams = new URLSearchParams(Object.assign({ action: action }, params));
+                url += (url.includes('?') ? '&' : '?') + queryParams.toString();
+                options = { method: 'GET' };
+            } else {
+                const payload = Object.assign({ action: action }, params);
+                options = {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                };
+            }
+
+            const response = await fetch(url, options);
+            const resJson = await response.json();
+            
+            if (resJson.status === 'error') {
+                throw new Error(resJson.error || 'Lỗi xử lý từ Google Apps Script');
+            }
+            return resJson.data;
+        }
+
+        // Test GAS Connection
+        async function saveAndTestGasUrl() {
+            const inputUrl = document.getElementById('gasUrlInput').value.trim();
+            if (!inputUrl) return alert('Vui lòng nhập Web App URL!');
+            state.gasUrl = inputUrl;
+            localStorage.setItem('myboard_gas_url', inputUrl);
+            await testGasConnection(true);
+        }
+
+        async function testGasConnection(showResultBox = true) {
+            const resDiv = document.getElementById('gasTestResult');
+            if (showResultBox) {
+                resDiv.style.display = 'block';
+                resDiv.style.background = 'rgba(99, 102, 241, 0.1)';
+                resDiv.style.color = 'var(--text-main)';
+                resDiv.innerHTML = '<span class="spinner"></span> Đang kết nối thử tới Google Apps Script...';
+            }
+
+            try {
+                const data = await fetchFromGas('ping');
+                updateGasStatus(true, `Đã kết nối (${data.user || 'OK'})`);
+                if (showResultBox) {
+                    resDiv.style.background = 'rgba(16, 185, 129, 0.15)';
+                    resDiv.style.color = 'var(--accent-emerald)';
+                    resDiv.innerHTML = `<strong>Thành công!</strong> ${data.message}`;
+                }
+                loadGmailData();
+                loadCalendarData();
+            } catch (err) {
+                updateGasStatus(false, 'Kết nối thất bại');
+                if (showResultBox) {
+                    resDiv.style.background = 'rgba(244, 63, 94, 0.15)';
+                    resDiv.style.color = 'var(--accent-rose)';
+                    resDiv.innerHTML = `<strong>Lỗi:</strong> ${err.message}`;
+                }
+            }
+        }
+
+        function updateGasStatus(connected, text) {
+            const dot = document.getElementById('gasStatusDot');
+            const txt = document.getElementById('gasStatusText');
+            dot.className = `dot ${connected ? 'connected' : 'disconnected'}`;
+            txt.textContent = `GAS: ${text}`;
+        }
+
+        // Load Gmail Data
+        async function loadGmailData() {
+            if (!state.gasUrl) return;
+            const overviewList = document.getElementById('overviewEmailList');
+            const fullList = document.getElementById('gmailList');
+            
+            overviewList.innerHTML = '<p style="color: var(--text-muted);"><span class="spinner"></span> Đang tải email...</p>';
+            fullList.innerHTML = '<p style="color: var(--text-muted);"><span class="spinner"></span> Đang tải email...</p>';
+
+            try {
+                const emails = await fetchFromGas('getEmails', { maxResults: 12 });
+                state.emails = emails || [];
+                
+                const unreadCount = state.emails.filter(e => e.unread).length;
+                document.getElementById('statUnreadCount').textContent = unreadCount;
+                document.getElementById('navEmailBadge').textContent = unreadCount;
+
+                renderEmailLists();
+            } catch (err) {
+                overviewList.innerHTML = `<p style="color: var(--accent-rose);">Lỗi tải email: ${err.message}</p>`;
+                fullList.innerHTML = `<p style="color: var(--accent-rose);">Lỗi tải email: ${err.message}</p>`;
+            }
+        }
+
+        function renderEmailLists() {
+            const overviewList = document.getElementById('overviewEmailList');
+            const fullList = document.getElementById('gmailList');
+
+            if (state.emails.length === 0) {
+                overviewList.innerHTML = '<p style="color: var(--text-muted);">Không có email nào trong Hộp thư đến.</p>';
+                fullList.innerHTML = '<p style="color: var(--text-muted);">Không có email nào.</p>';
+                return;
+            }
+
+            const html = state.emails.map((email, idx) => `
+                <div class="email-item ${email.unread ? 'unread' : ''}" onclick="selectEmail(${idx})">
+                    <div class="email-header">
+                        <strong style="color: var(--text-main);">${escapeHtml(email.sender)}</strong>
+                        <span>${new Date(email.date).toLocaleDateString('vi-VN')}</span>
+                    </div>
+                    <div class="email-subject">${escapeHtml(email.subject)}</div>
+                    <div class="email-snippet">${escapeHtml(email.snippet)}</div>
+                </div>
+            `).join('');
+
+            overviewList.innerHTML = html;
+            fullList.innerHTML = html;
+        }
+
+        function selectEmail(index) {
+            const email = state.emails[index];
+            if (!email) return;
+            state.selectedEmail = email;
+
+            document.getElementById('emailDetailPlaceholder').style.display = 'none';
+            const container = document.getElementById('emailDetailContainer');
+            container.style.display = 'block';
+
+            document.getElementById('detailSubject').textContent = email.subject;
+            document.getElementById('detailSender').textContent = `Từ: ${email.sender} | Ngày: ${new Date(email.date).toLocaleString('vi-VN')}`;
+            
+            const lastMsg = email.messages && email.messages.length > 0 ? email.messages[email.messages.length - 1] : null;
+            document.getElementById('detailBody').textContent = lastMsg ? lastMsg.body : email.snippet;
+
+            document.getElementById('replyTextarea').value = '';
+        }
+
+        // AI Draft Reply with Gemini
+        async function generateAiReply() {
+            if (!state.selectedEmail) return alert('Vui lòng chọn email cần trả lời!');
+            const replyBox = document.getElementById('replyTextarea');
+            const lastMsg = state.selectedEmail.messages ? state.selectedEmail.messages[state.selectedEmail.messages.length - 1] : null;
+            const content = lastMsg ? lastMsg.body : state.selectedEmail.snippet;
+
+            replyBox.value = 'Đang nhờ Gemini soạn bản thảo trả lời...';
+
+            try {
+                const prompt = `Bạn là trợ lý cá nhân chuyên nghiệp. Hãy viết một email phản hồi bằng tiếng Việt ngắn gọn, lịch sự cho email dưới đây:\n\nTiêu đề: ${state.selectedEmail.subject}\nNgười gửi: ${state.selectedEmail.sender}\nNội dung:\n${content}`;
+                
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: prompt, model: document.getElementById('chatModelSelect').value || '' })
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Không thể tạo bản thảo');
+
+                replyBox.value = data.result;
+            } catch (err) {
+                alert('Lỗi tạo phản hồi tự động: ' + err.message);
+                replyBox.value = '';
+            }
+        }
+
+        // Send Email Reply
+        async function sendEmailReply() {
+            if (!state.selectedEmail) return;
+            const body = document.getElementById('replyTextarea').value.trim();
+            if (!body) return alert('Vui lòng nhập nội dung trả lời!');
+
+            const btn = document.getElementById('sendReplyBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Đang gửi...';
+
+            try {
+                await fetchFromGas('replyEmail', {
+                    threadId: state.selectedEmail.threadId,
+                    messageId: state.selectedEmail.messageId,
+                    body: body
+                });
+                alert('Đã gửi phản hồi email thành công!');
+                document.getElementById('replyTextarea').value = '';
+                loadGmailData();
+            } catch (err) {
+                alert('Lỗi khi gửi email: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="send"></i> Gửi Trả Lời';
+                lucide.createIcons();
+            }
+        }
+
+        // Load Calendar Data
+        async function loadCalendarData() {
+            if (!state.gasUrl) return;
+            const overviewCalList = document.getElementById('overviewCalList');
+            const fullCalList = document.getElementById('calendarEventsFullList');
+
+            overviewCalList.innerHTML = '<p style="color: var(--text-muted);"><span class="spinner"></span> Đang tải lịch...</p>';
+            fullCalList.innerHTML = '<p style="color: var(--text-muted);"><span class="spinner"></span> Đang tải lịch...</p>';
+
+            try {
+                const events = await fetchFromGas('getCalendarEvents', { days: 7 });
+                state.calendarEvents = events || [];
+
+                document.getElementById('statCalCount').textContent = state.calendarEvents.length;
+                document.getElementById('navCalBadge').textContent = state.calendarEvents.length;
+
+                renderCalendarLists();
+            } catch (err) {
+                overviewCalList.innerHTML = `<p style="color: var(--accent-rose);">Lỗi tải lịch: ${err.message}</p>`;
+                fullCalList.innerHTML = `<p style="color: var(--accent-rose);">Lỗi tải lịch: ${err.message}</p>`;
+            }
+        }
+
+        function renderCalendarLists() {
+            const overviewCalList = document.getElementById('overviewCalList');
+            const fullCalList = document.getElementById('calendarEventsFullList');
+
+            if (state.calendarEvents.length === 0) {
+                const emptyMsg = '<p style="color: var(--text-muted);">Không có sự kiện nào trong 7 ngày tới.</p>';
+                overviewCalList.innerHTML = emptyMsg;
+                fullCalList.innerHTML = emptyMsg;
+                return;
+            }
+
+            const html = state.calendarEvents.map(event => {
+                const start = new Date(event.startTime);
+                const timeStr = event.isAllDay ? 'Cả ngày' : start.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                const dateStr = start.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' });
+
+                return `
+                    <div class="event-card">
+                        <div class="event-time-badge">
+                            <span>${dateStr}</span>
+                            <span>${timeStr}</span>
+                        </div>
+                        <div style="flex: 1;">
+                            <h4 style="font-size: 15px; font-weight: 600; margin-bottom: 4px;">${escapeHtml(event.title)}</h4>
+                            ${event.location ? `<p style="font-size: 13px; color: var(--text-muted);"><i data-lucide="map-pin" style="width: 12px; height: 12px;"></i> ${escapeHtml(event.location)}</p>` : ''}
+                            ${event.description ? `<p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">${escapeHtml(event.description)}</p>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            overviewCalList.innerHTML = html;
+            fullCalList.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        // Modal Handlers
+        function openNewEventModal() { document.getElementById('newEventModal').classList.add('open'); }
+        function openNewEmailModal() { document.getElementById('newEmailModal').classList.add('open'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+        // Create Calendar Event
+        async function submitCreateEvent() {
+            const title = document.getElementById('eventTitleInput').value.trim();
+            const startTime = document.getElementById('eventStartInput').value;
+            const endTime = document.getElementById('eventEndInput').value;
+            const location = document.getElementById('eventLocInput').value.trim();
+            const description = document.getElementById('eventDescInput').value.trim();
+
+            if (!title || !startTime) return alert('Vui lòng nhập tên sự kiện và thời gian bắt đầu!');
+
+            const btn = document.getElementById('saveEventBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Đang tạo...';
+
+            try {
+                await fetchFromGas('createCalendarEvent', {
+                    title, startTime, endTime, location, description
+                });
+                alert('Đã thêm sự kiện vào Google Calendar!');
+                closeModal('newEventModal');
+                loadCalendarData();
+            } catch (err) {
+                alert('Lỗi tạo sự kiện: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Tạo sự kiện';
+            }
+        }
+
+        // Send New Email
+        async function submitSendNewEmail() {
+            const to = document.getElementById('emailToInput').value.trim();
+            const subject = document.getElementById('emailSubjectInput').value.trim();
+            const body = document.getElementById('emailBodyInput').value.trim();
+
+            if (!to || !subject || !body) return alert('Vui lòng điền đầy đủ người nhận, tiêu đề và nội dung!');
+
+            const btn = document.getElementById('sendNewEmailBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Đang gửi...';
+
+            try {
+                await fetchFromGas('sendEmail', { to, subject, body });
+                alert('Email đã được gửi thành công!');
+                closeModal('newEmailModal');
+                loadGmailData();
+            } catch (err) {
+                alert('Lỗi gửi email: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="send"></i> Gửi Email';
+                lucide.createIcons();
+            }
+        }
+
+        // Gemini Models & Chat
+        async function loadGeminiModels() {
+            const select = document.getElementById('chatModelSelect');
+            try {
+                const res = await fetch('/api/models');
+                const data = await res.json();
+                if (!data.models) return;
+
+                select.innerHTML = '';
+                const chatModels = data.models.filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'));
+                
+                chatModels.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m.name;
+                    opt.textContent = `${m.displayName} (${m.version})`;
+                    if (m.name.includes('flash')) opt.selected = true;
+                    select.appendChild(opt);
+                });
+            } catch (err) {
+                select.innerHTML = '<option>Gemini 1.5 Flash</option>';
+            }
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chatPromptInput');
+            const prompt = input.value.trim();
+            const model = document.getElementById('chatModelSelect').value;
+            const messagesDiv = document.getElementById('chatMessages');
+
+            if (!prompt) return;
+
+            // Render User Bubble
+            const userBubble = document.createElement('div');
+            userBubble.className = 'chat-bubble user';
+            userBubble.textContent = prompt;
+            messagesDiv.appendChild(userBubble);
+
+            input.value = '';
+
+            // Render Loading AI Bubble
+            const aiBubble = document.createElement('div');
+            aiBubble.className = 'chat-bubble ai';
+            aiBubble.innerHTML = '<span class="spinner"></span> Đang suy nghĩ...';
+            messagesDiv.appendChild(aiBubble);
+
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            try {
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: prompt, model: model })
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Lỗi gửi tin nhắn');
+
+                aiBubble.innerHTML = marked.parse(data.result);
+            } catch (err) {
+                aiBubble.innerHTML = `<span style="color: var(--accent-rose);">Lỗi: ${err.message}</span>`;
+            }
+
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Copy GAS Code helper
+        function copyGasCode() {
+            const code = `/** Copy this code to Google Apps Script (script.google.com) **/`;
+            window.open('/gas_microservice.gs', '_blank');
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+    </script>
 </body>
 </html>
