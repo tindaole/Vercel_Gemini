@@ -131,9 +131,9 @@ function getEmails(maxResults, query) {
       messageId: lastMsg ? lastMsg.getId() : "",
       unread: thread.isUnread(),
       subject: firstMsgSubject || lastMsgSubject || "(No Subject)",
-      sender: lastMsg.getFrom(),
-      date: lastMsg.getDate().toISOString(),
-      snippet: thread.getSnippet(),
+      sender: lastMsg ? lastMsg.getFrom() : "",
+      date: lastMsg ? lastMsg.getDate().toISOString() : new Date().toISOString(),
+      snippet: lastMsg ? lastMsg.getSnippet() : "",
       messageCount: thread.getMessageCount(),
       messages: messages.map(function(m) {
         return {
