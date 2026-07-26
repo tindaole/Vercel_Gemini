@@ -777,6 +777,38 @@
                     <label style="font-size: 13px; font-weight: 600;">Tên sự kiện / Cuộc họp:</label>
                     <input type="text" id="eventTitleInput" class="input" placeholder="Ví dụ: Họp nhóm dự án">
                 </div>
+
+                <div style="display: flex; gap: 12px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 13px; font-weight: 600;">Nhãn / Danh mục:</label>
+                        <select id="eventCategoryInput" class="input">
+                            <option value="Work" selected>💼 Công việc</option>
+                            <option value="Personal">🏠 Cá nhân</option>
+                            <option value="Meeting">👥 Cuộc họp</option>
+                            <option value="Urgent">🔥 Khẩn cấp</option>
+                            <option value="Other">📌 Khác</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 13px; font-weight: 600;">Nhắc nhở (Reminder):</label>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-top: 10px;">
+                            <input type="checkbox" id="eventEnableReminder" style="width: 18px; height: 18px; cursor: pointer;" onchange="toggleReminderOptions()">
+                            <span style="font-size: 14px;">Bật nhắc nhở</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="reminderOptionsContainer" style="display: none;">
+                    <label style="font-size: 13px; font-weight: 600;">Thời gian nhắc trước:</label>
+                    <select id="eventReminderMinutes" class="input">
+                        <option value="5">5 phút trước</option>
+                        <option value="15" selected>15 phút trước</option>
+                        <option value="30">30 phút trước</option>
+                        <option value="60">1 giờ trước</option>
+                        <option value="1440">1 ngày trước</option>
+                    </select>
+                </div>
+
                 <div style="display: flex; gap: 12px;">
                     <div style="flex: 1;">
                         <label style="font-size: 13px; font-weight: 600;">Thời gian bắt đầu:</label>
@@ -840,7 +872,7 @@
             emails: [],
             calendarEvents: [],
             selectedEmail: null,
-            replyMode: 'reply', // 'reply', 'replyAll', 'forward'
+            replyMode: 'reply',
             models: []
         };
 
@@ -1331,10 +1363,20 @@
                 return;
             }
 
+            const categoryBadges = {
+                Work: { label: '💼 Công việc', bg: 'rgba(16, 185, 129, 0.15)', color: '#10b981' },
+                Personal: { label: '🏠 Cá nhân', bg: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6' },
+                Meeting: { label: '👥 Cuộc họp', bg: 'rgba(139, 92, 246, 0.15)', color: '#8b5cf6' },
+                Urgent: { label: '🔥 Khẩn cấp', bg: 'rgba(244, 63, 94, 0.15)', color: '#f43f5e' },
+                Other: { label: '📌 Khác', bg: 'rgba(100, 116, 139, 0.15)', color: '#94a3b8' }
+            };
+
             const html = state.calendarEvents.map(event => {
                 const start = new Date(event.startTime);
                 const timeStr = event.isAllDay ? 'Cả ngày' : start.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
                 const dateStr = start.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' });
+
+                const catInfo = categoryBadges[event.category] || categoryBadges.Work;
 
                 return `
                     <div class="event-card">
@@ -1343,6 +1385,12 @@
                             <span>${timeStr}</span>
                         </div>
                         <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                <span style="font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px; background: ${catInfo.bg}; color: ${catInfo.color}; border: 1px solid ${catInfo.color}33;">
+                                    ${catInfo.label}
+                                </span>
+                                ${event.hasReminder ? `<span style="font-size: 11px; color: var(--accent-amber); display: flex; align-items: center; gap: 3px;" title="Có nhắc nhở trước ${event.reminderMinutes} phút"><i data-lucide="bell" style="width: 12px; height: 12px;"></i> ${event.reminderMinutes}p</span>` : ''}
+                            </div>
                             <h4 style="font-size: 15px; font-weight: 600; margin-bottom: 4px;">${escapeHtml(event.title)}</h4>
                             ${event.location ? `<p style="font-size: 13px; color: var(--text-muted);"><i data-lucide="map-pin" style="width: 12px; height: 12px;"></i> ${escapeHtml(event.location)}</p>` : ''}
                             ${event.description ? `<p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">${escapeHtml(event.description)}</p>` : ''}
@@ -1361,9 +1409,18 @@
         function openNewEmailModal() { document.getElementById('newEmailModal').classList.add('open'); }
         function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
+        function toggleReminderOptions() {
+            const check = document.getElementById('eventEnableReminder');
+            document.getElementById('reminderOptionsContainer').style.display = check.checked ? 'block' : 'none';
+        }
+
         // Create Calendar Event
         async function submitCreateEvent() {
             const title = document.getElementById('eventTitleInput').value.trim();
+            const category = document.getElementById('eventCategoryInput').value;
+            const enableReminder = document.getElementById('eventEnableReminder').checked;
+            const reminderMinutes = document.getElementById('eventReminderMinutes').value;
+
             const startTime = document.getElementById('eventStartInput').value;
             const endTime = document.getElementById('eventEndInput').value;
             const location = document.getElementById('eventLocInput').value.trim();
@@ -1377,7 +1434,8 @@
 
             try {
                 await fetchFromGas('createCalendarEvent', {
-                    title, startTime, endTime, location, description
+                    title, startTime, endTime, location, description,
+                    category, enableReminder, reminderMinutes
                 });
                 alert('Đã thêm sự kiện vào Google Calendar!');
                 closeModal('newEventModal');

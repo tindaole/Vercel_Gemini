@@ -85,14 +85,37 @@ function getCalendarEvents(days) {
   
   var events = CalendarApp.getDefaultCalendar().getEvents(now, end);
   return events.map(function(e) {
+    var rawTitle = e.getTitle() || "";
+    var category = "Work";
+    var displayTitle = rawTitle;
+
+    // Detect category from tag or title prefix
+    var tagCategory = "";
+    try { tagCategory = e.getTag("category"); } catch (err) {}
+
+    if (tagCategory) {
+      category = tagCategory;
+    } else if (rawTitle.indexOf("[") === 0 && rawTitle.indexOf("]") > 0) {
+      category = rawTitle.substring(1, rawTitle.indexOf("]"));
+      displayTitle = rawTitle.substring(rawTitle.indexOf("]") + 1).trim();
+    }
+
+    var popupReminders = [];
+    try { popupReminders = e.getPopupReminders(); } catch (err) {}
+
     return {
       id: e.getId(),
-      title: e.getTitle(),
+      title: displayTitle,
+      fullTitle: rawTitle,
+      category: category,
+      colorId: e.getColor() || "2",
       startTime: e.getStartTime().toISOString(),
       endTime: e.getEndTime().toISOString(),
       isAllDay: e.isAllDayEvent(),
       location: e.getLocation(),
-      description: e.getDescription()
+      description: e.getDescription(),
+      hasReminder: popupReminders.length > 0,
+      reminderMinutes: popupReminders.length > 0 ? popupReminders[0] : 0
     };
   });
 }
@@ -104,15 +127,38 @@ function createCalendarEvent(data) {
   var cal = CalendarApp.getDefaultCalendar();
   var start = new Date(data.startTime);
   var end = data.endTime ? new Date(data.endTime) : new Date(start.getTime() + 60 * 60 * 1000);
+  
+  var category = data.category || "Work";
+  var fullTitle = "[" + category + "] " + data.title;
+
   var options = {};
   if (data.location) options.location = data.location;
   if (data.description) options.description = data.description;
-  
-  var event = cal.createEvent(data.title, start, end, options);
+
+  var event = cal.createEvent(fullTitle, start, end, options);
+
+  // Set event color & tag
+  var colorMap = { "Personal": "1", "Work": "2", "Meeting": "3", "Urgent": "4", "Other": "8" };
+  var colorId = data.colorId || colorMap[category] || "2";
+  try {
+    event.setColor(colorId);
+    event.setTag("category", category);
+  } catch (err) {}
+
+  // Set Reminders
+  if (data.enableReminder) {
+    var mins = parseInt(data.reminderMinutes || 15, 10);
+    try {
+      event.addPopupReminder(mins);
+      event.addEmailReminder(mins);
+    } catch (err) {}
+  }
+
   return {
     success: true,
     id: event.getId(),
     title: event.getTitle(),
+    category: category,
     startTime: event.getStartTime().toISOString()
   };
 }
@@ -133,7 +179,6 @@ function getSnippetText(msg) {
 
 function getEmails(maxResults, query) {
   var count = parseInt(maxResults || 10, 10);
-  // Default to 10 latest emails from Primary category in Gmail
   var q = query || "category:primary inbox";
   var threads = GmailApp.search(q, 0, count);
   var resultList = [];
@@ -156,7 +201,6 @@ function getEmails(maxResults, query) {
       snippet: getSnippetText(lastMsg),
       messageCount: thread.getMessageCount(),
       messages: messages.map(function(m) {
-        // Extract attachments
         var rawAtts = m.getAttachments();
         var attachments = rawAtts.map(function(att) {
           var size = att.getSize();
@@ -165,7 +209,6 @@ function getEmails(maxResults, query) {
             mimeType: att.getContentType(),
             size: size
           };
-          // Include base64 data for previews if file size <= 4MB
           if (size <= 4 * 1024 * 1024) {
             try {
               var base64 = Utilities.base64Encode(att.getBytes());
