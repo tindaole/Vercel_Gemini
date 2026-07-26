@@ -112,6 +112,17 @@ function createCalendarEvent(data) {
 /**
  * Gmail Functions
  */
+function getSnippetText(msg) {
+  if (!msg) return "";
+  try {
+    var plain = msg.getPlainBody() || "";
+    var cleaned = plain.replace(/\s+/g, " ").trim();
+    return cleaned.length > 160 ? cleaned.substring(0, 160) + "..." : cleaned;
+  } catch (err) {
+    return "";
+  }
+}
+
 function getEmails(maxResults, query) {
   var count = parseInt(maxResults || 15, 10);
   var q = query || "inbox";
@@ -133,7 +144,7 @@ function getEmails(maxResults, query) {
       subject: firstMsgSubject || lastMsgSubject || "(No Subject)",
       sender: lastMsg ? lastMsg.getFrom() : "",
       date: lastMsg ? lastMsg.getDate().toISOString() : new Date().toISOString(),
-      snippet: lastMsg ? lastMsg.getSnippet() : "",
+      snippet: getSnippetText(lastMsg),
       messageCount: thread.getMessageCount(),
       messages: messages.map(function(m) {
         return {
@@ -142,6 +153,7 @@ function getEmails(maxResults, query) {
           to: m.getTo(),
           date: m.getDate().toISOString(),
           subject: m.getSubject(),
+          snippet: getSnippetText(m),
           body: m.getPlainBody() || m.getBody()
         };
       })
