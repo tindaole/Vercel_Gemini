@@ -697,10 +697,16 @@
                 <!-- Email List Panel -->
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-title"><i data-lucide="inbox"></i> Primary Inbox (10 Thư mới nhất)</div>
-                        <div style="display: flex; gap: 8px;">
-                            <button class="btn btn-outline" onclick="openNewEmailModal()"><i data-lucide="plus"></i> Soạn thư</button>
-                            <button class="btn btn-outline" onclick="loadGmailData()"><i data-lucide="refresh-cw"></i></button>
+                        <div class="card-title"><i data-lucide="inbox"></i> Primary Inbox</div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <select id="emailCountSelect" onchange="changeEmailCount(this.value)" class="input" style="width: auto; padding: 4px 8px; font-size: 13px; height: 32px; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--bg-card-border); cursor: pointer; border-radius: 8px;">
+                                <option value="10" selected>10 Thư</option>
+                                <option value="20">20 Thư</option>
+                                <option value="30">30 Thư</option>
+                                <option value="50">50 Thư</option>
+                            </select>
+                            <button class="btn btn-outline" style="padding: 6px 12px; font-size: 13px; height: 32px;" onclick="openNewEmailModal()"><i data-lucide="plus"></i> Soạn thư</button>
+                            <button class="btn btn-outline" style="padding: 6px 12px; font-size: 13px; height: 32px;" onclick="loadGmailData()"><i data-lucide="refresh-cw"></i></button>
                         </div>
                     </div>
                     <div id="gmailList" class="email-list">
@@ -1065,7 +1071,8 @@
             emailViewFormat: 'html',
             emailBgMode: 'light',
             models: [],
-            tasks: []
+            tasks: [],
+            maxEmails: 10
         };
 
         let sessionInterval = null;
@@ -1366,17 +1373,18 @@
             }
         }
 
-        // Load Gmail Data (10 latest emails from Primary tab)
+        // Load Gmail Data (latest emails from Primary tab)
         async function loadGmailData() {
             if (!state.gasConfigured) return;
             const overviewList = document.getElementById('overviewEmailList');
             const fullList = document.getElementById('gmailList');
             
-            overviewList.innerHTML = '<p style="color: var(--text-muted);"><span class="spinner"></span> Đang tải 10 email Primary...</p>';
-            fullList.innerHTML = '<p style="color: var(--text-muted);"><span class="spinner"></span> Đang tải 10 email Primary...</p>';
+            const count = state.maxEmails || 10;
+            overviewList.innerHTML = `<p style="color: var(--text-muted);"><span class="spinner"></span> Đang tải ${count} email Primary...</p>`;
+            fullList.innerHTML = `<p style="color: var(--text-muted);"><span class="spinner"></span> Đang tải ${count} email Primary...</p>`;
 
             try {
-                const emails = await fetchFromGas('getEmails', { maxResults: 10, query: 'category:primary inbox' });
+                const emails = await fetchFromGas('getEmails', { maxResults: count, query: 'category:primary inbox' });
                 state.emails = emails || [];
                 
                 const unreadCount = state.emails.filter(e => e.unread).length;
@@ -1388,6 +1396,11 @@
                 overviewList.innerHTML = `<p style="color: var(--accent-rose);">Lỗi tải email: ${err.message}</p>`;
                 fullList.innerHTML = `<p style="color: var(--accent-rose);">Lỗi tải email: ${err.message}</p>`;
             }
+        }
+
+        function changeEmailCount(val) {
+            state.maxEmails = Number(val);
+            loadGmailData();
         }
 
         function renderEmailLists() {
