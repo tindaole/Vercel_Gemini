@@ -1406,7 +1406,7 @@
             fullList.innerHTML = `<p style="color: var(--text-muted);"><span class="spinner"></span> Đang tải ${count} email Primary...</p>`;
 
             try {
-                const emails = await fetchFromGas('getEmails', { maxResults: count, query: 'category:primary inbox' });
+                const emails = await fetchFromGas('getEmails', { maxResults: count, query: 'category:primary in:inbox' });
                 state.emails = emails || [];
                 
                 const unreadCount = state.emails.filter(e => e.unread).length;

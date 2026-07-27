@@ -183,7 +183,7 @@ function getSnippetText(msg) {
 
 function getEmails(maxResults, query) {
   var count = parseInt(maxResults || 10, 10);
-  var q = query || "category:primary inbox";
+  var q = query || "category:primary in:inbox";
   var threads = GmailApp.search(q, 0, count);
   var resultList = [];
   
