@@ -54,9 +54,13 @@ function handleRequest(e) {
       response.data = markReadEmail(data);
     } else if (action === "sendEmail") {
       response.data = sendEmail(data);
+    } else if (action === "getTasks") {
+      response.data = getTasks();
+    } else if (action === "saveTasks") {
+      response.data = saveTasks(data.tasksList);
     } else {
       response.status = "error";
-      response.error = "Invalid or missing action. Available: ping, getCalendarEvents, createCalendarEvent, getEmails, replyEmail, replyAllEmail, forwardEmail, deleteEmail, markReadEmail, sendEmail";
+      response.error = "Invalid or missing action. Available: ping, getCalendarEvents, createCalendarEvent, getEmails, replyEmail, replyAllEmail, forwardEmail, deleteEmail, markReadEmail, sendEmail, getTasks, saveTasks";
     }
   } catch (err) {
     response.status = "error";
@@ -294,4 +298,66 @@ function sendEmail(data) {
   }
   GmailApp.sendEmail(data.to, data.subject, data.body);
   return { success: true, message: "Email sent successfully" };
+}
+
+/**
+ * Google Sheets To-Do Tasks Functions
+ */
+function getOrCreateTasksSheet() {
+  var fileName = "MyBoard Tasks";
+  var files = DriveApp.getFilesByName(fileName);
+  var ss;
+  
+  if (files.hasNext()) {
+    ss = SpreadsheetApp.open(files.next());
+  } else {
+    ss = SpreadsheetApp.create(fileName);
+    var sheet = ss.getSheets()[0];
+    sheet.setName("Tasks");
+    sheet.appendRow(["ID", "Title", "Important", "Urgent", "Completed", "CreatedAt"]);
+  }
+  
+  return ss.getSheetByName("Tasks");
+}
+
+function getTasks() {
+  var sheet = getOrCreateTasksSheet();
+  var data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return [];
+  
+  var tasks = [];
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    if (!row[0]) continue; // Skip empty rows
+    tasks.push({
+      id: row[0].toString(),
+      title: row[1].toString(),
+      important: row[2] === true || row[2] === "true",
+      urgent: row[3] === true || row[3] === "true",
+      completed: row[4] === true || row[4] === "true",
+      createdAt: row[5] ? row[5].toString() : ""
+    });
+  }
+  return tasks;
+}
+
+function saveTasks(tasksList) {
+  var sheet = getOrCreateTasksSheet();
+  sheet.clearContents();
+  sheet.appendRow(["ID", "Title", "Important", "Urgent", "Completed", "CreatedAt"]);
+  
+  if (tasksList && tasksList.length > 0) {
+    var rows = tasksList.map(function(task) {
+      return [
+        task.id || "",
+        task.title || "",
+        task.important === true || task.important === "true",
+        task.urgent === true || task.urgent === "true",
+        task.completed === true || task.completed === "true",
+        task.createdAt || new Date().toISOString()
+      ];
+    });
+    sheet.getRange(2, 1, rows.length, 6).setValues(rows);
+  }
+  return { success: true, count: tasksList ? tasksList.length : 0 };
 }

@@ -482,6 +482,55 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        /* To-do Matrix Styles */
+        .todo-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--bg-card-border);
+            cursor: grab;
+            transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+        }
+        [data-theme="light"] .todo-item {
+            background: rgba(0, 0, 0, 0.02);
+        }
+        .todo-item:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+        [data-theme="light"] .todo-item:hover {
+            background: rgba(0, 0, 0, 0.04);
+            border-color: rgba(99, 102, 241, 0.4);
+        }
+        .todo-item:active {
+            cursor: grabbing;
+        }
+        .todo-quadrant-list {
+            scrollbar-width: thin;
+        }
+        .todo-quadrant-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .todo-quadrant-list::-webkit-scrollbar-thumb {
+            background: var(--bg-card-border);
+            border-radius: 4px;
+        }
+        .quadrant-card {
+            transition: all 0.2s ease;
+        }
+        .quadrant-card.drag-over {
+            border-color: var(--primary) !important;
+            background: rgba(99, 102, 241, 0.05) !important;
+            transform: translateY(-2px);
+        }
+        [data-theme="light"] .quadrant-card.drag-over {
+            background: rgba(99, 102, 241, 0.03) !important;
+        }
+
         @media (max-width: 900px) {
             .sidebar { width: 70px; padding: 16px 8px; }
             .brand-title, .nav-item span, .badge { display: none; }
@@ -545,6 +594,12 @@
                     <i data-lucide="calendar"></i>
                     <span>Lịch công việc</span>
                     <span class="badge" id="navCalBadge">0</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button onclick="switchTab('todo', this)">
+                    <i data-lucide="check-square"></i>
+                    <span>Ma trận Task</span>
                 </button>
             </li>
             <li class="nav-item">
@@ -782,21 +837,21 @@
                 </div>
 
                 <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px; line-height: 1.6;">
-                    Để xem và trả lời email cũng như đồng bộ lịch Google Calendar cá nhân một cách an toàn mà không cần đăng nhập Google trực tiếp trên máy công ty, hãy dán đường dẫn Web App của bạn bên dưới.
+                    Để xem và trả lời email cũng như đồng bộ lịch Google Calendar cá nhân một cách an toàn, cấu hình đường dẫn Web App của bạn trong biến môi trường <strong>GAS_URL</strong> trên Vercel.
                 </p>
 
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; font-weight: 600; margin-bottom: 8px;">Google Apps Script Web App URL (Đã mã hóa/bảo mật):</label>
-                    <div style="position: relative; display: flex; align-items: center;">
-                        <input type="password" id="gasUrlInput" class="input" placeholder="https://script.google.com/macros/s/.../exec" style="padding-right: 48px;">
-                        <button type="button" onclick="toggleGasUrlMask()" style="position: absolute; right: 10px; background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 6px; display: flex; align-items: center;" title="Hiển thị / Ẩn Web App URL">
-                            <i data-lucide="eye" id="gasUrlMaskIcon"></i>
-                        </button>
+                <div style="margin-bottom: 20px; padding: 14px; border-radius: 8px; background: var(--bg-card); border: 1px solid var(--bg-card-border);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                        <div>
+                            <span style="font-weight: 600; display: block; margin-bottom: 4px;">Trạng thái cấu hình Vercel:</span>
+                            <span id="gasConfigStatusVal" style="font-size: 14px; color: var(--text-muted);">Đang kiểm tra...</span>
+                        </div>
+                        <span class="badge" id="gasConfigBadge" style="background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); font-weight: 600; padding: 4px 8px; border-radius: 6px;">Checking</span>
                     </div>
                 </div>
 
                 <div style="display: flex; gap: 12px; margin-bottom: 24px;">
-                    <button class="btn" onclick="saveAndTestGasUrl()"><i data-lucide="save"></i> Lưu & Kiểm Tra Kết Nối</button>
+                    <button class="btn" onclick="testGasConnection(true)"><i data-lucide="refresh-cw"></i> Kiểm Tra Kết Nối</button>
                     <button class="btn btn-outline" onclick="copyGasCode()"><i data-lucide="copy"></i> Sao chép mã Google Apps Script (.gs)</button>
                 </div>
 
@@ -811,8 +866,89 @@
                     <li>Tạo một dự án mới (<strong>New project</strong>), xóa toàn bộ mã mặc định và dán đoạn mã từ file <code>gas_microservice.gs</code> (hoặc bấm nút "Sao chép mã" ở trên).</li>
                     <li>Bấm nút <strong>Deploy</strong> &rarr; <strong>New deployment</strong>.</li>
                     <li>Chọn loại: <strong>Web app</strong>, thiết lập <i>Execute as: Me</i> và <i>Who has access: Anyone</i>.</li>
-                    <li>Bấm <strong>Deploy</strong>, chấp nhận quyền truy cập (Gmail & Calendar) và sao chép đường dẫn <strong>Web App URL</strong> dán vào ô cấu hình ở trên!</li>
+                    <li>Bấm <strong>Deploy</strong>, chấp nhận quyền truy cập (Gmail, Calendar và Sheets/Drive) và sao chép đường dẫn <strong>Web App URL</strong> dán vào ô cấu hình ở trên!</li>
                 </ol>
+            </div>
+        </section>
+
+        <!-- VIEW 6: TO-DO MATRIX -->
+        <section id="view-todo" class="tab-view">
+            <!-- Add Task Form -->
+            <div class="card" style="margin-bottom: 24px;">
+                <div class="card-title" style="margin-bottom: 16px;"><i data-lucide="plus-circle"></i> Thêm công việc mới</div>
+                <form id="todoForm" onsubmit="addTodoTask(event)" style="display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap;">
+                    <div style="flex: 2; min-width: 250px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px;">Tên công việc:</label>
+                        <input type="text" id="todoTitleInput" class="input" placeholder="Nhập tên công việc cần làm..." required>
+                    </div>
+                    <div style="flex: 1; min-width: 180px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px;">Tính chất công việc:</label>
+                        <select id="todoQuadrantSelect" class="input" style="background: var(--bg-card); color: var(--text-main); border: 1px solid var(--bg-card-border); cursor: pointer; padding: 10px 14px;">
+                            <option value="Q1">🔥 Quan trọng & Khẩn cấp (Làm ngay)</option>
+                            <option value="Q2">📅 Quan trọng & Không khẩn cấp (Lên kế hoạch)</option>
+                            <option value="Q3">🙋‍♂️ Không quan trọng & Khẩn cấp (Ủy quyền)</option>
+                            <option value="Q4">🗑️ Không quan trọng & Không khẩn cấp (Loại bỏ)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button type="submit" class="btn" style="height: 42px;"><i data-lucide="plus"></i> Thêm</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Eisenhower Matrix Grid -->
+            <div class="grid-2" style="margin-bottom: 24px;">
+                <!-- Quadrant 1: Important & Urgent -->
+                <div class="card quadrant-card" style="border-top: 4px solid var(--accent-rose);" ondragover="allowTodoDrop(event)" ondragenter="handleTodoDragEnter(event)" ondragleave="handleTodoDragLeave(event)" ondrop="handleTodoDrop(event, 'Q1')">
+                    <div class="card-header" style="padding-bottom: 12px; border-bottom: 1px solid var(--bg-card-border);">
+                        <div class="card-title" style="color: var(--accent-rose);">
+                            <i data-lucide="zap"></i> Quan trọng & Khẩn cấp (LÀM NGAY)
+                        </div>
+                        <span class="badge" id="badge-q1" style="background: rgba(244, 63, 94, 0.15); color: var(--accent-rose);">0</span>
+                    </div>
+                    <div id="todo-list-q1" class="todo-quadrant-list" style="min-height: 150px; max-height: 300px; overflow-y: auto; margin-top: 12px; display: flex; flex-direction: column; gap: 8px; padding-right: 4px;">
+                        <!-- Q1 items -->
+                    </div>
+                </div>
+
+                <!-- Quadrant 2: Important & Not Urgent -->
+                <div class="card quadrant-card" style="border-top: 4px solid var(--accent-purple);" ondragover="allowTodoDrop(event)" ondragenter="handleTodoDragEnter(event)" ondragleave="handleTodoDragLeave(event)" ondrop="handleTodoDrop(event, 'Q2')">
+                    <div class="card-header" style="padding-bottom: 12px; border-bottom: 1px solid var(--bg-card-border);">
+                        <div class="card-title" style="color: var(--accent-purple);">
+                            <i data-lucide="calendar"></i> Quan trọng & Không khẩn cấp (LÊN KẾ HOẠCH)
+                        </div>
+                        <span class="badge" id="badge-q2" style="background: rgba(139, 92, 246, 0.15); color: var(--accent-purple);">0</span>
+                    </div>
+                    <div id="todo-list-q2" class="todo-quadrant-list" style="min-height: 150px; max-height: 300px; overflow-y: auto; margin-top: 12px; display: flex; flex-direction: column; gap: 8px; padding-right: 4px;">
+                        <!-- Q2 items -->
+                    </div>
+                </div>
+
+                <!-- Quadrant 3: Not Important & Urgent -->
+                <div class="card quadrant-card" style="border-top: 4px solid var(--accent-amber);" ondragover="allowTodoDrop(event)" ondragenter="handleTodoDragEnter(event)" ondragleave="handleTodoDragLeave(event)" ondrop="handleTodoDrop(event, 'Q3')">
+                    <div class="card-header" style="padding-bottom: 12px; border-bottom: 1px solid var(--bg-card-border);">
+                        <div class="card-title" style="color: var(--accent-amber);">
+                            <i data-lucide="user-check"></i> Không quan trọng & Khẩn cấp (ỦY QUYỀN)
+                        </div>
+                        <span class="badge" id="badge-q3" style="background: rgba(245, 158, 11, 0.15); color: var(--accent-amber);">0</span>
+                    </div>
+                    <div id="todo-list-q3" class="todo-quadrant-list" style="min-height: 150px; max-height: 300px; overflow-y: auto; margin-top: 12px; display: flex; flex-direction: column; gap: 8px; padding-right: 4px;">
+                        <!-- Q3 items -->
+                    </div>
+                </div>
+
+                <!-- Quadrant 4: Not Important & Not Urgent -->
+                <div class="card quadrant-card" style="border-top: 4px solid var(--text-muted);" ondragover="allowTodoDrop(event)" ondragenter="handleTodoDragEnter(event)" ondragleave="handleTodoDragLeave(event)" ondrop="handleTodoDrop(event, 'Q4')">
+                    <div class="card-header" style="padding-bottom: 12px; border-bottom: 1px solid var(--bg-card-border);">
+                        <div class="card-title" style="color: var(--text-muted);">
+                            <i data-lucide="slash"></i> Không quan trọng & Không khẩn cấp (LOẠI BỎ)
+                        </div>
+                        <span class="badge" id="badge-q4" style="background: rgba(148, 163, 184, 0.15); color: var(--text-muted);">0</span>
+                    </div>
+                    <div id="todo-list-q4" class="todo-quadrant-list" style="min-height: 150px; max-height: 300px; overflow-y: auto; margin-top: 12px; display: flex; flex-direction: column; gap: 8px; padding-right: 4px;">
+                        <!-- Q4 items -->
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -920,7 +1056,7 @@
     <script>
         // Store Global App State
         const state = {
-            gasUrl: localStorage.getItem('myboard_gas_url') || '',
+            gasConfigured: false,
             theme: localStorage.getItem('myboard_theme') || 'dark',
             emails: [],
             calendarEvents: [],
@@ -928,7 +1064,8 @@
             replyMode: 'reply',
             emailViewFormat: 'html',
             emailBgMode: 'light',
-            models: []
+            models: [],
+            tasks: []
         };
 
         let sessionInterval = null;
@@ -938,13 +1075,9 @@
             restoreSidebarState();
             applyTheme(state.theme);
             checkSession();
-            if (state.gasUrl) {
-                document.getElementById('gasUrlInput').value = state.gasUrl;
-                testGasConnection(false);
-            } else {
-                updateGasStatus(false, 'Chưa cấu hình Web App URL');
-            }
+            checkGasConfiguration();
             loadGeminiModels();
+            initTodos();
         });
 
         // Collapsible Sidebar Handler
@@ -975,19 +1108,7 @@
             }
         }
 
-        // Mask / Unmask GAS Web App URL
-        function toggleGasUrlMask() {
-            const input = document.getElementById('gasUrlInput');
-            const icon = document.getElementById('gasUrlMaskIcon');
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.setAttribute('data-lucide', 'eye-off');
-            } else {
-                input.type = 'password';
-                icon.setAttribute('data-lucide', 'eye');
-            }
-            lucide.createIcons();
-        }
+        // toggleGasUrlMask removed (GAS_URL configured on server)
 
         // Password & Session Management
         function checkSession() {
@@ -1067,7 +1188,7 @@
                 localStorage.setItem('myboard_auth_expires_at', data.expiresAt);
                 unlockBoard();
 
-                if (state.gasUrl) {
+                if (state.gasConfigured) {
                     loadGmailData();
                     loadCalendarData();
                 }
@@ -1107,6 +1228,7 @@
                 overview: ['Bảng điều khiển tổng quan', 'Chào mừng trở lại! Dưới đây là thông tin lịch trình & email của bạn.'],
                 gmail: ['Hộp thư Primary Gmail', 'Đọc, xem tệp đính kèm, phản hồi, chuyển tiếp & xóa 10 email mới nhất.'],
                 calendar: ['Lịch cá nhân', 'Theo dõi và tạo các sự kiện công việc sắp tới.'],
+                todo: ['Ma trận Công việc', 'Quản lý và ưu tiên các công việc theo ma trận Eisenhower (Quan trọng & Khẩn cấp).'],
                 gemini: ['Trợ lý Trí tuệ Nhân tạo', 'Đặt câu hỏi và nhận câu trả lời thông minh từ Gemini.'],
                 settings: ['Cấu hình Microservice', 'Quản lý kết nối tới Google Apps Script cá nhân.']
             };
@@ -1116,39 +1238,40 @@
                 document.getElementById('viewSubtitle').textContent = titles[tabId][1];
             }
 
-            if ((tabId === 'gmail' || tabId === 'overview') && state.emails.length === 0 && state.gasUrl) {
+            if ((tabId === 'gmail' || tabId === 'overview') && state.emails.length === 0 && state.gasConfigured) {
                 loadGmailData();
             }
-            if ((tabId === 'calendar' || tabId === 'overview') && state.calendarEvents.length === 0 && state.gasUrl) {
+            if ((tabId === 'calendar' || tabId === 'overview') && state.calendarEvents.length === 0 && state.gasConfigured) {
                 loadCalendarData();
             }
         }
 
         // GAS Microservice Communication Helper
         async function fetchFromGas(action, params = {}, method = 'GET') {
-            if (!state.gasUrl) {
-                throw new Error("Chưa cấu hình đường dẫn Google Apps Script Web App URL!");
-            }
-
-            let url = state.gasUrl;
+            let url = '/api/gas';
             let options = {};
 
             const isReadAction = action === 'ping' || action === 'getEmails' || action === 'getCalendarEvents' || method.toUpperCase() === 'GET';
 
             if (isReadAction) {
                 const queryParams = new URLSearchParams(Object.assign({ action: action }, params));
-                url += (url.includes('?') ? '&' : '?') + queryParams.toString();
+                url += '?' + queryParams.toString();
                 options = { method: 'GET' };
             } else {
                 const payload = Object.assign({ action: action }, params);
                 options = {
                     method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 };
             }
 
             const response = await fetch(url, options);
+            if (!response.ok) {
+                const errJson = await response.json().catch(() => ({}));
+                throw new Error(errJson.error || `HTTP error! status: ${response.status}`);
+            }
+
             const resJson = await response.json();
             
             if (resJson.status === 'error') {
@@ -1157,13 +1280,21 @@
             return resJson.data;
         }
 
-        // Test GAS Connection
-        async function saveAndTestGasUrl() {
-            const inputUrl = document.getElementById('gasUrlInput').value.trim();
-            if (!inputUrl) return alert('Vui lòng nhập Web App URL!');
-            state.gasUrl = inputUrl;
-            localStorage.setItem('myboard_gas_url', inputUrl);
-            await testGasConnection(true);
+        // Check GAS status on startup
+        async function checkGasConfiguration() {
+            updateGasStatusChecking();
+            try {
+                const data = await fetchFromGas('ping');
+                state.gasConfigured = true;
+                updateGasStatus(true, `Đã kết nối (${data.user || 'OK'})`);
+                loadGmailData();
+                loadCalendarData();
+                loadTodosFromGas();
+            } catch (err) {
+                state.gasConfigured = false;
+                const isEnvMissing = err.message.includes('GAS_URL');
+                updateGasStatus(false, isEnvMissing ? 'Chưa cấu hình trên Vercel' : 'Kết nối thất bại');
+            }
         }
 
         async function testGasConnection(showResultBox = true) {
@@ -1175,8 +1306,11 @@
                 resDiv.innerHTML = '<span class="spinner"></span> Đang kết nối thử tới Google Apps Script...';
             }
 
+            updateGasStatusChecking();
+
             try {
                 const data = await fetchFromGas('ping');
+                state.gasConfigured = true;
                 updateGasStatus(true, `Đã kết nối (${data.user || 'OK'})`);
                 if (showResultBox) {
                     resDiv.style.background = 'rgba(16, 185, 129, 0.15)';
@@ -1185,8 +1319,11 @@
                 }
                 loadGmailData();
                 loadCalendarData();
+                loadTodosFromGas();
             } catch (err) {
-                updateGasStatus(false, 'Kết nối thất bại');
+                state.gasConfigured = false;
+                const isEnvMissing = err.message.includes('GAS_URL');
+                updateGasStatus(false, isEnvMissing ? 'Chưa cấu hình trên Vercel' : 'Kết nối thất bại');
                 if (showResultBox) {
                     resDiv.style.background = 'rgba(244, 63, 94, 0.15)';
                     resDiv.style.color = 'var(--accent-rose)';
@@ -1195,16 +1332,43 @@
             }
         }
 
+        function updateGasStatusChecking() {
+            const badge = document.getElementById('gasConfigBadge');
+            const statusVal = document.getElementById('gasConfigStatusVal');
+            if (badge && statusVal) {
+                badge.style.background = 'rgba(245, 158, 11, 0.15)';
+                badge.style.color = 'var(--accent-amber)';
+                badge.textContent = 'Checking';
+                statusVal.textContent = 'Đang kiểm tra...';
+            }
+        }
+
         function updateGasStatus(connected, text) {
             const dot = document.getElementById('gasStatusDot');
             const txt = document.getElementById('gasStatusText');
             dot.className = `dot ${connected ? 'connected' : 'disconnected'}`;
             txt.textContent = `GAS: ${text}`;
+
+            const badge = document.getElementById('gasConfigBadge');
+            const statusVal = document.getElementById('gasConfigStatusVal');
+            if (badge && statusVal) {
+                if (connected) {
+                    badge.style.background = 'rgba(16, 185, 129, 0.15)';
+                    badge.style.color = 'var(--accent-emerald)';
+                    badge.textContent = 'Configured';
+                    statusVal.textContent = text;
+                } else {
+                    badge.style.background = 'rgba(244, 63, 94, 0.15)';
+                    badge.style.color = 'var(--accent-rose)';
+                    badge.textContent = 'Failed';
+                    statusVal.textContent = text;
+                }
+            }
         }
 
         // Load Gmail Data (10 latest emails from Primary tab)
         async function loadGmailData() {
-            if (!state.gasUrl) return;
+            if (!state.gasConfigured) return;
             const overviewList = document.getElementById('overviewEmailList');
             const fullList = document.getElementById('gmailList');
             
@@ -1482,7 +1646,7 @@
 
         // Load Calendar Data
         async function loadCalendarData() {
-            if (!state.gasUrl) return;
+            if (!state.gasConfigured) return;
             const overviewCalList = document.getElementById('overviewCalList');
             const fullCalList = document.getElementById('calendarEventsFullList');
 
@@ -1706,6 +1870,201 @@
         function escapeHtml(str) {
             if (!str) return '';
             return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+
+        // Eisenhower To-Do Matrix Handlers
+        function initTodos() {
+            const stored = localStorage.getItem('myboard_tasks');
+            if (stored) {
+                state.tasks = JSON.parse(stored);
+            } else {
+                state.tasks = [
+                    { id: 'task-1', title: 'Thiết lập biến môi trường GAS_URL trên Vercel', important: true, urgent: true, completed: false },
+                    { id: 'task-2', title: 'Lên kế hoạch dự án tuần tới', important: true, urgent: false, completed: false },
+                    { id: 'task-3', title: 'Trả lời các email khẩn cấp', important: false, urgent: true, completed: false },
+                    { id: 'task-4', title: 'Xem các kênh giải trí ngoài giờ', important: false, urgent: false, completed: false }
+                ];
+            }
+            renderTodos();
+        }
+
+        async function loadTodosFromGas() {
+            try {
+                const tasks = await fetchFromGas('getTasks');
+                state.tasks = tasks || [];
+                // If there are no tasks on GAS yet, initialize with defaults
+                if (state.tasks.length === 0) {
+                    state.tasks = [
+                        { id: 'task-1', title: 'Thiết lập biến môi trường GAS_URL trên Vercel', important: true, urgent: true, completed: false },
+                        { id: 'task-2', title: 'Lên kế hoạch dự án tuần tới', important: true, urgent: false, completed: false },
+                        { id: 'task-3', title: 'Trả lời các email khẩn cấp', important: false, urgent: true, completed: false },
+                        { id: 'task-4', title: 'Xem các kênh giải trí ngoài giờ', important: false, urgent: false, completed: false }
+                    ];
+                    await saveTodos();
+                }
+                renderTodos();
+            } catch (err) {
+                console.error("Lỗi khi tải tasks từ Google Sheets:", err);
+            }
+        }
+
+        async function saveTodos() {
+            localStorage.setItem('myboard_tasks', JSON.stringify(state.tasks));
+            if (state.gasConfigured) {
+                try {
+                    await fetchFromGas('saveTasks', { tasksList: state.tasks }, 'POST');
+                } catch (err) {
+                    console.error("Lỗi khi lưu tasks vào Google Sheets:", err);
+                }
+            }
+        }
+
+        function addTodoTask(e) {
+            e.preventDefault();
+            const titleInput = document.getElementById('todoTitleInput');
+            const quadrantSelect = document.getElementById('todoQuadrantSelect');
+            
+            const title = titleInput.value.trim();
+            if (!title) return;
+
+            const quad = quadrantSelect.value;
+            let important = false;
+            let urgent = false;
+            
+            if (quad === 'Q1') { important = true; urgent = true; }
+            else if (quad === 'Q2') { important = true; urgent = false; }
+            else if (quad === 'Q3') { important = false; urgent = true; }
+            else if (quad === 'Q4') { important = false; urgent = false; }
+
+            const newTask = {
+                id: 'task-' + Date.now(),
+                title: title,
+                important: important,
+                urgent: urgent,
+                completed: false
+            };
+
+            state.tasks.push(newTask);
+            saveTodos();
+            renderTodos();
+            
+            titleInput.value = '';
+        }
+
+        function toggleTodoComplete(id) {
+            const task = state.tasks.find(t => t.id === id);
+            if (task) {
+                task.completed = !task.completed;
+                saveTodos();
+                renderTodos();
+            }
+        }
+
+        function deleteTodoTask(id) {
+            state.tasks = state.tasks.filter(t => t.id !== id);
+            saveTodos();
+            renderTodos();
+        }
+
+        function renderTodos() {
+            const q1List = document.getElementById('todo-list-q1');
+            const q2List = document.getElementById('todo-list-q2');
+            const q3List = document.getElementById('todo-list-q3');
+            const q4List = document.getElementById('todo-list-q4');
+
+            if (!q1List || !q2List || !q3List || !q4List) return;
+
+            q1List.innerHTML = '';
+            q2List.innerHTML = '';
+            q3List.innerHTML = '';
+            q4List.innerHTML = '';
+
+            let c1 = 0, c2 = 0, c3 = 0, c4 = 0;
+
+            state.tasks.forEach(task => {
+                const item = document.createElement('div');
+                item.className = 'todo-item';
+                item.setAttribute('draggable', 'true');
+                item.addEventListener('dragstart', (e) => handleTodoDragStart(e, task.id));
+                
+                item.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+                        <input type="checkbox" onchange="toggleTodoComplete('${task.id}')" ${task.completed ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px; accent-color: var(--primary);">
+                        <span style="font-size: 14px; text-decoration: ${task.completed ? 'line-through' : 'none'}; color: ${task.completed ? 'var(--text-muted)' : 'var(--text-main)'}; word-break: break-word;">${escapeHtml(task.title)}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <button class="btn btn-outline" onclick="deleteTodoTask('${task.id}')" style="padding: 4px 8px; font-size: 12px; border-color: rgba(244, 63, 94, 0.2); color: var(--accent-rose); height: 28px; width: 28px; display: flex; align-items: center; justify-content: center;" title="Xóa">
+                            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                        </button>
+                    </div>
+                `;
+
+                if (task.important && task.urgent) {
+                    q1List.appendChild(item);
+                    c1++;
+                } else if (task.important && !task.urgent) {
+                    q2List.appendChild(item);
+                    c2++;
+                } else if (!task.important && task.urgent) {
+                    q3List.appendChild(item);
+                    c3++;
+                } else {
+                    q4List.appendChild(item);
+                    c4++;
+                }
+            });
+
+            // Update badges
+            document.getElementById('badge-q1').textContent = c1;
+            document.getElementById('badge-q2').textContent = c2;
+            document.getElementById('badge-q3').textContent = c3;
+            document.getElementById('badge-q4').textContent = c4;
+
+            lucide.createIcons();
+        }
+
+        function handleTodoDragStart(e, id) {
+            e.dataTransfer.setData('text/plain', id);
+        }
+
+        function allowTodoDrop(e) {
+            e.preventDefault();
+        }
+
+        function handleTodoDragEnter(e) {
+            e.preventDefault();
+            const card = e.currentTarget;
+            if (card && card.classList.contains('quadrant-card')) {
+                card.classList.add('drag-over');
+            }
+        }
+
+        function handleTodoDragLeave(e) {
+            e.preventDefault();
+            const card = e.currentTarget;
+            if (card && card.classList.contains('quadrant-card')) {
+                card.classList.remove('drag-over');
+            }
+        }
+
+        function handleTodoDrop(e, targetQuadrant) {
+            e.preventDefault();
+            const card = e.currentTarget;
+            if (card && card.classList.contains('quadrant-card')) {
+                card.classList.remove('drag-over');
+            }
+            
+            const id = e.dataTransfer.getData('text/plain');
+            const task = state.tasks.find(t => t.id === id);
+            if (task) {
+                if (targetQuadrant === 'Q1') { task.important = true; task.urgent = true; }
+                else if (targetQuadrant === 'Q2') { task.important = true; task.urgent = false; }
+                else if (targetQuadrant === 'Q3') { task.important = false; task.urgent = true; }
+                else if (targetQuadrant === 'Q4') { task.important = false; task.urgent = false; }
+                
+                saveTodos();
+                renderTodos();
+            }
         }
     </script>
 </body>
