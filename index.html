@@ -689,6 +689,28 @@
                     </div>
                 </div>
             </div>
+
+            <div class="grid-2" style="margin-top: 24px;">
+                <!-- Important & Urgent Tasks -->
+                <div class="card" style="border-top: 4px solid var(--accent-rose);">
+                    <div class="card-header">
+                        <div class="card-title" style="color: var(--accent-rose);"><i data-lucide="zap"></i> Việc quan trọng & Khẩn cấp (Q1)</div>
+                    </div>
+                    <div id="overview-todo-q1" class="todo-quadrant-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; padding-right: 4px;">
+                        <!-- Q1 items -->
+                    </div>
+                </div>
+
+                <!-- Urgent & Not-important Tasks -->
+                <div class="card" style="border-top: 4px solid var(--accent-amber);">
+                    <div class="card-header">
+                        <div class="card-title" style="color: var(--accent-amber);"><i data-lucide="user-check"></i> Việc khẩn cấp & Không quan trọng (Q3)</div>
+                    </div>
+                    <div id="overview-todo-q3" class="todo-quadrant-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; padding-right: 4px;">
+                        <!-- Q3 items -->
+                    </div>
+                </div>
+            </div>
         </section>
 
         <!-- VIEW 2: GMAIL INBOX & REPLY -->
@@ -1984,6 +2006,8 @@
             const q2List = document.getElementById('todo-list-q2');
             const q3List = document.getElementById('todo-list-q3');
             const q4List = document.getElementById('todo-list-q4');
+            const ovQ1List = document.getElementById('overview-todo-q1');
+            const ovQ3List = document.getElementById('overview-todo-q3');
 
             if (!q1List || !q2List || !q3List || !q4List) return;
 
@@ -1991,6 +2015,8 @@
             q2List.innerHTML = '';
             q3List.innerHTML = '';
             q4List.innerHTML = '';
+            if (ovQ1List) ovQ1List.innerHTML = '';
+            if (ovQ3List) ovQ3List.innerHTML = '';
 
             let c1 = 0, c2 = 0, c3 = 0, c4 = 0;
 
@@ -2012,20 +2038,40 @@
                     </div>
                 `;
 
+                // Simple item for Overview
+                const ovItem = document.createElement('div');
+                ovItem.className = 'todo-item';
+                ovItem.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+                        <input type="checkbox" onchange="toggleTodoComplete('${task.id}')" ${task.completed ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px; accent-color: var(--primary);">
+                        <span style="font-size: 14px; text-decoration: ${task.completed ? 'line-through' : 'none'}; color: ${task.completed ? 'var(--text-muted)' : 'var(--text-main)'}; word-break: break-word;">${escapeHtml(task.title)}</span>
+                    </div>
+                `;
+
                 if (task.important && task.urgent) {
                     q1List.appendChild(item);
+                    if (ovQ1List) ovQ1List.appendChild(ovItem);
                     c1++;
                 } else if (task.important && !task.urgent) {
                     q2List.appendChild(item);
                     c2++;
                 } else if (!task.important && task.urgent) {
                     q3List.appendChild(item);
+                    if (ovQ3List) ovQ3List.appendChild(ovItem);
                     c3++;
                 } else {
                     q4List.appendChild(item);
                     c4++;
                 }
             });
+
+            // Empty placeholders for Overview
+            if (ovQ1List && ovQ1List.children.length === 0) {
+                ovQ1List.innerHTML = '<p style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px 0;">🎉 Đã hoàn thành tất cả việc quan trọng & khẩn cấp!</p>';
+            }
+            if (ovQ3List && ovQ3List.children.length === 0) {
+                ovQ3List.innerHTML = '<p style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px 0;">👍 Không có công việc khẩn cấp nào cần xử lý.</p>';
+            }
 
             // Update badges
             document.getElementById('badge-q1').textContent = c1;
