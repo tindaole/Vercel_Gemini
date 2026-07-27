@@ -1,5 +1,6 @@
 // api/gas.js
 export default async function handler(req, res) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     const gasUrl = process.env.GAS_URL;
 
     if (!gasUrl) {

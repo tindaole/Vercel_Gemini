@@ -1254,7 +1254,7 @@
             const isReadAction = action === 'ping' || action === 'getEmails' || action === 'getCalendarEvents' || method.toUpperCase() === 'GET';
 
             if (isReadAction) {
-                const queryParams = new URLSearchParams(Object.assign({ action: action }, params));
+                const queryParams = new URLSearchParams(Object.assign({ action: action, _t: Date.now() }, params));
                 url += '?' + queryParams.toString();
                 options = { method: 'GET' };
             } else {
