@@ -878,8 +878,9 @@
                     </div>
                 </div>
 
-                <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+                <div style="display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;">
                     <button class="btn" onclick="testGasConnection(true)"><i data-lucide="refresh-cw"></i> Kiểm Tra Kết Nối</button>
+                    <button class="btn btn-outline" onclick="testTelegramBot()"><i data-lucide="send"></i> Gửi thử Telegram</button>
                     <button class="btn btn-outline" onclick="copyGasCode()"><i data-lucide="copy"></i> Sao chép mã Google Apps Script (.gs)</button>
                 </div>
 
@@ -1319,6 +1320,9 @@
                 loadGmailData();
                 loadCalendarData();
                 loadTodosFromGas();
+                
+                // Silently configure the daily Telegram trigger
+                fetchFromGas('setupTelegramTrigger').catch(err => console.error("Lỗi setup Telegram trigger:", err));
             } catch (err) {
                 state.gasConfigured = false;
                 const isEnvMissing = err.message.includes('GAS_URL');
@@ -1423,6 +1427,26 @@
         function changeEmailCount(val) {
             state.maxEmails = Number(val);
             loadGmailData();
+        }
+
+        async function testTelegramBot() {
+            if (!state.gasConfigured) return alert('Vui lòng cấu hình kết nối GAS thành công trước!');
+            const resDiv = document.getElementById('gasTestResult');
+            resDiv.style.display = 'block';
+            resDiv.style.background = 'rgba(99, 102, 241, 0.1)';
+            resDiv.style.color = 'var(--text-main)';
+            resDiv.innerHTML = '<span class="spinner"></span> Đang gửi tin nhắn thử tới Telegram...';
+
+            try {
+                const data = await fetchFromGas('testTelegramMessage', {}, 'POST');
+                resDiv.style.background = 'rgba(16, 185, 129, 0.15)';
+                resDiv.style.color = 'var(--accent-emerald)';
+                resDiv.innerHTML = `<strong>Thành công!</strong> Đã gửi tin nhắn Telegram. Vui lòng kiểm tra ứng dụng Telegram của bạn!`;
+            } catch (err) {
+                resDiv.style.background = 'rgba(244, 63, 94, 0.15)';
+                resDiv.style.color = 'var(--accent-rose)';
+                resDiv.innerHTML = `<strong>Lỗi gửi Telegram:</strong> ${err.message}`;
+            }
         }
 
         function renderEmailLists() {

@@ -58,9 +58,13 @@ function handleRequest(e) {
       response.data = getTasks();
     } else if (action === "saveTasks") {
       response.data = saveTasks(data.tasksList);
+    } else if (action === "setupTelegramTrigger") {
+      response.data = setupTelegramTrigger();
+    } else if (action === "testTelegramMessage") {
+      response.data = sendDailyTelegramReminder();
     } else {
       response.status = "error";
-      response.error = "Invalid or missing action. Available: ping, getCalendarEvents, createCalendarEvent, getEmails, replyEmail, replyAllEmail, forwardEmail, deleteEmail, markReadEmail, sendEmail, getTasks, saveTasks";
+      response.error = "Invalid or missing action. Available: ping, getCalendarEvents, createCalendarEvent, getEmails, replyEmail, replyAllEmail, forwardEmail, deleteEmail, markReadEmail, sendEmail, getTasks, saveTasks, setupTelegramTrigger, testTelegramMessage";
     }
   } catch (err) {
     response.status = "error";
@@ -360,4 +364,81 @@ function saveTasks(tasksList) {
     sheet.getRange(2, 1, rows.length, 6).setValues(rows);
   }
   return { success: true, count: tasksList ? tasksList.length : 0 };
+}
+
+/**
+ * Telegram Notifications Functions
+ */
+function setupTelegramTrigger() {
+  var triggerName = "sendDailyTelegramReminder";
+  var triggers = ScriptApp.getProjectTriggers();
+  var exists = false;
+  
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === triggerName) {
+      exists = true;
+      break;
+    }
+  }
+  
+  if (!exists) {
+    ScriptApp.newTrigger(triggerName)
+      .timeBased()
+      .everyDays(1)
+      .atHour(19) // 7:00 PM
+      .nearMinute(0)
+      .create();
+  }
+  
+  return { success: true, message: "Daily Telegram trigger set up successfully at 7:00 PM." };
+}
+
+function sendDailyTelegramReminder() {
+  var props = PropertiesService.getScriptProperties();
+  var botToken = props.getProperty("TELEGRAM_BOT_TOKEN");
+  var chatId = props.getProperty("TELEGRAM_CHAT_ID");
+  
+  if (!botToken || !chatId) {
+    throw new Error("Missing script properties: TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not configured in Google Apps Script properties.");
+  }
+  
+  var tasks = getTasks();
+  var q1Incomplete = tasks.filter(function(t) {
+    return t.important && t.urgent && !t.completed;
+  });
+  
+  var messageText = "";
+  if (q1Incomplete.length > 0) {
+    messageText = "🔔 *NHẮC NHỞ CÔNG VIỆC KHẢN CẤP (7:00 PM)*\n\n" +
+                  "Bạn có " + q1Incomplete.length + " công việc *Quan trọng & Khẩn cấp* chưa hoàn thành:\n\n" +
+                  q1Incomplete.map(function(t, idx) {
+                    return (idx + 1) + ". " + t.title;
+                  }).join("\n") +
+                  "\n\nHãy hoàn thành chúng nhé! 💪";
+  } else {
+    messageText = "🎉 *NHẮC NHỞ CÔNG VIỆC (7:00 PM)*\n\n" +
+                  "Chúc mừng! Bạn đã hoàn thành tất cả công việc *Quan trọng & Khẩn cấp* hôm nay! Chúc bạn có một buổi tối thư giãn! 🌟";
+  }
+  
+  var url = "https://api.telegram.org/bot" + botToken + "/sendMessage";
+  var payload = {
+    chat_id: chatId,
+    text: messageText,
+    parse_mode: "Markdown"
+  };
+  
+  var response = UrlFetchApp.fetch(url, {
+    method: "post",
+    contentType: "application/json",
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
+  
+  var resText = response.getContentText();
+  var resJson = JSON.parse(resText);
+  if (response.getResponseCode() !== 200) {
+    throw new Error("Telegram API Error: " + (resJson.description || resText));
+  }
+  
+  return { success: true, message: "Telegram message sent successfully!", response: resJson };
 }
