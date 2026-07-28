@@ -409,22 +409,22 @@ function sendDailyTelegramReminder() {
   
   var messageText = "";
   if (q1Incomplete.length > 0) {
-    messageText = "🔔 *NHẮC NHỞ CÔNG VIỆC KHẢN CẤP (7:00 PM)*\n\n" +
-                  "Bạn có " + q1Incomplete.length + " công việc *Quan trọng & Khẩn cấp* chưa hoàn thành:\n\n" +
+    messageText = "🔔 <b>NHẮC NHỞ CÔNG VIỆC KHẢN CẤP (7:00 PM)</b>\n\n" +
+                  "Bạn có " + q1Incomplete.length + " công việc <b>Quan trọng &amp; Khẩn cấp</b> chưa hoàn thành:\n\n" +
                   q1Incomplete.map(function(t, idx) {
-                    return (idx + 1) + ". " + t.title;
+                    return (idx + 1) + ". " + escapeTelegramHtml(t.title);
                   }).join("\n") +
                   "\n\nHãy hoàn thành chúng nhé! 💪";
   } else {
-    messageText = "🎉 *NHẮC NHỞ CÔNG VIỆC (7:00 PM)*\n\n" +
-                  "Chúc mừng! Bạn đã hoàn thành tất cả công việc *Quan trọng & Khẩn cấp* hôm nay! Chúc bạn có một buổi tối thư giãn! 🌟";
+    messageText = "🎉 <b>NHẮC NHỞ CÔNG VIỆC (7:00 PM)</b>\n\n" +
+                  "Chúc mừng! Bạn đã hoàn thành tất cả công việc <b>Quan trọng &amp; Khẩn cấp</b> hôm nay! Chúc bạn có một buổi tối thư giãn! 🌟";
   }
   
   var url = "https://api.telegram.org/bot" + botToken + "/sendMessage";
   var payload = {
     chat_id: chatId,
     text: messageText,
-    parse_mode: "Markdown"
+    parse_mode: "HTML"
   };
   
   var response = UrlFetchApp.fetch(url, {
@@ -441,4 +441,12 @@ function sendDailyTelegramReminder() {
   }
   
   return { success: true, message: "Telegram message sent successfully!", response: resJson };
+}
+
+function escapeTelegramHtml(text) {
+  if (!text) return "";
+  return text.toString()
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
