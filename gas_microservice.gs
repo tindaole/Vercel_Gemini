@@ -42,6 +42,10 @@ function handleRequest(e) {
       response.data = createCalendarEvent(data);
     } else if (action === "getEmails") {
       response.data = getEmails(data.maxResults, data.query);
+    } else if (action === "getThreadDetails") {
+      response.data = getThreadDetails(data.threadId);
+    } else if (action === "getAttachment") {
+      response.data = getAttachment(data.messageId, data.attachmentName);
     } else if (action === "replyEmail") {
       response.data = replyEmail(data);
     } else if (action === "replyAllEmail") {
@@ -64,7 +68,7 @@ function handleRequest(e) {
       response.data = sendDailyTelegramReminder();
     } else {
       response.status = "error";
-      response.error = "Invalid or missing action. Available: ping, getCalendarEvents, createCalendarEvent, getEmails, replyEmail, replyAllEmail, forwardEmail, deleteEmail, markReadEmail, sendEmail, getTasks, saveTasks, setupTelegramTrigger, testTelegramMessage";
+      response.error = "Invalid or missing action. Available: ping, getCalendarEvents, createCalendarEvent, getEmails, getThreadDetails, getAttachment, replyEmail, replyAllEmail, forwardEmail, deleteEmail, markReadEmail, sendEmail, getTasks, saveTasks, setupTelegramTrigger, testTelegramMessage";
     }
   } catch (err) {
     response.status = "error";
@@ -207,41 +211,68 @@ function getEmails(maxResults, query) {
       sender: lastMsg ? lastMsg.getFrom() : "",
       date: lastMsg ? lastMsg.getDate().toISOString() : new Date().toISOString(),
       snippet: getSnippetText(lastMsg),
-      messageCount: thread.getMessageCount(),
-      messages: messages.map(function(m) {
-        var rawAtts = m.getAttachments();
-        var attachments = rawAtts.map(function(att) {
-          var size = att.getSize();
-          var item = {
-            name: att.getName(),
-            mimeType: att.getContentType(),
-            size: size
-          };
-          if (size <= 4 * 1024 * 1024) {
-            try {
-              var base64 = Utilities.base64Encode(att.getBytes());
-              item.dataUrl = "data:" + att.getContentType() + ";base64," + base64;
-            } catch (e) {}
-          }
-          return item;
-        });
-
-        return {
-          id: m.getId(),
-          from: m.getFrom(),
-          to: m.getTo(),
-          date: m.getDate().toISOString(),
-          subject: m.getSubject(),
-          snippet: getSnippetText(m),
-          htmlBody: m.getBody() || "",
-          plainBody: m.getPlainBody() || "",
-          body: m.getBody() || m.getPlainBody() || "",
-          attachments: attachments
-        };
-      })
+      messageCount: thread.getMessageCount()
     });
   }
   return resultList;
+}
+
+function getThreadDetails(threadId) {
+  if (!threadId) {
+    throw new Error("Missing threadId parameter.");
+  }
+  var thread = GmailApp.getThreadById(threadId);
+  var messages = thread.getMessages();
+  
+  var messagesData = messages.map(function(m) {
+    var rawAtts = m.getAttachments();
+    var attachments = rawAtts.map(function(att) {
+      return {
+        name: att.getName(),
+        mimeType: att.getContentType(),
+        size: att.getSize()
+      };
+    });
+
+    return {
+      id: m.getId(),
+      from: m.getFrom(),
+      to: m.getTo(),
+      date: m.getDate().toISOString(),
+      subject: m.getSubject(),
+      snippet: getSnippetText(m),
+      htmlBody: m.getBody() || "",
+      plainBody: m.getPlainBody() || "",
+      body: m.getBody() || m.getPlainBody() || "",
+      attachments: attachments
+    };
+  });
+  
+  return {
+    threadId: thread.getId(),
+    messages: messagesData
+  };
+}
+
+function getAttachment(messageId, attachmentName) {
+  if (!messageId || !attachmentName) {
+    throw new Error("Missing messageId or attachmentName parameters.");
+  }
+  var message = GmailApp.getMessageById(messageId);
+  var attachments = message.getAttachments();
+  
+  for (var i = 0; i < attachments.length; i++) {
+    var att = attachments[i];
+    if (att.getName() === attachmentName) {
+      var base64 = Utilities.base64Encode(att.getBytes());
+      return {
+        name: att.getName(),
+        mimeType: att.getContentType(),
+        dataUrl: "data:" + att.getContentType() + ";base64," + base64
+      };
+    }
+  }
+  throw new Error("Attachment not found in message: " + attachmentName);
 }
 
 function replyEmail(data) {

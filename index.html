@@ -1281,7 +1281,7 @@
             let url = '/api/gas';
             let options = {};
 
-            const isReadAction = action === 'ping' || action === 'getEmails' || action === 'getCalendarEvents' || method.toUpperCase() === 'GET';
+            const isReadAction = action === 'ping' || action === 'getEmails' || action === 'getThreadDetails' || action === 'getAttachment' || action === 'getCalendarEvents' || method.toUpperCase() === 'GET';
 
             if (isReadAction) {
                 const queryParams = new URLSearchParams(Object.assign({ action: action, _t: Date.now() }, params));
@@ -1474,7 +1474,7 @@
             fullList.innerHTML = html;
         }
 
-        function selectEmail(index) {
+        async function selectEmail(index) {
             const email = state.emails[index];
             if (!email) return;
             state.selectedEmail = email;
@@ -1484,10 +1484,27 @@
             const container = document.getElementById('emailDetailContainer');
             container.style.display = 'block';
 
+            // Show temporary loading indicator in body and attachments
             document.getElementById('detailSubject').textContent = email.subject;
             document.getElementById('detailSender').textContent = `Từ: ${email.sender} | Ngày: ${new Date(email.date).toLocaleString('vi-VN')}`;
-            
-            const lastMsg = email.messages && email.messages.length > 0 ? email.messages[email.messages.length - 1] : null;
+            document.getElementById('detailBodyContent').innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 40px 0;"><span class="spinner"></span> Đang tải nội dung email...</p>';
+            document.getElementById('detailAttachments').innerHTML = '';
+
+            // If messages are not loaded, fetch them asynchronously
+            if (!email.messages) {
+                try {
+                    const data = await fetchFromGas('getThreadDetails', { threadId: email.threadId });
+                    email.messages = data.messages || [];
+                    // Keep in sync
+                    if (state.selectedEmail && state.selectedEmail.threadId === email.threadId) {
+                        state.selectedEmail.messages = email.messages;
+                    }
+                } catch (err) {
+                    console.error("Lỗi khi tải chi tiết email:", err);
+                    document.getElementById('detailBodyContent').innerHTML = `<p style="color: var(--accent-rose);">Lỗi khi tải nội dung email: ${escapeHtml(err.message)}</p>`;
+                    return;
+                }
+            }
 
             renderEmailContent();
 
@@ -1495,7 +1512,11 @@
             let allAtts = [];
             if (email.messages) {
                 email.messages.forEach(m => {
-                    if (m.attachments) allAtts.push(...m.attachments);
+                    if (m.attachments) {
+                        m.attachments.forEach(att => {
+                            allAtts.push(Object.assign({ messageId: m.id }, att));
+                        });
+                    }
                 });
             }
 
@@ -1506,12 +1527,16 @@
                         <i data-lucide="paperclip"></i> Tệp đính kèm (${allAtts.length}):
                     </h4>
                     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        ${allAtts.map(att => `
+                        ${allAtts.map((att, attIdx) => `
                             <div style="padding: 8px 12px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--bg-card-border); font-size: 13px; display: flex; align-items: center; gap: 8px;">
                                 <i data-lucide="file-text" style="width: 14px; height: 14px; color: var(--primary);"></i>
                                 <span style="font-weight: 500;">${escapeHtml(att.name)}</span>
                                 <span style="color: var(--text-muted); font-size: 11px;">(${formatFileSize(att.size)})</span>
-                                ${att.dataUrl ? `<a href="${att.dataUrl}" download="${escapeHtml(att.name)}" target="_blank" style="color: var(--accent-emerald); font-weight: 600; text-decoration: none; margin-left: 6px;" title="Tải xuống tệp đính kèm"><i data-lucide="download" style="width: 14px; height: 14px;"></i></a>` : ''}
+                                <span id="att-download-status-${attIdx}" style="display: flex; align-items: center; justify-content: center;">
+                                    <button class="btn btn-outline" onclick="downloadAttachment('${att.messageId}', '${escapeHtml(att.name)}', ${attIdx})" style="padding: 2px 6px; font-size: 11px; height: auto; border: none; background: transparent; color: var(--accent-emerald); cursor: pointer;" title="Tải xuống tệp đính kèm">
+                                        <i data-lucide="download" style="width: 14px; height: 14px;"></i>
+                                    </button>
+                                </span>
                             </div>
                         `).join('')}
                     </div>
@@ -1522,6 +1547,44 @@
 
             setReplyMode('reply');
             lucide.createIcons();
+        }
+
+        async function downloadAttachment(messageId, filename, index) {
+            const statusSpan = document.getElementById(`att-download-status-${index}`);
+            if (!statusSpan) return;
+
+            statusSpan.innerHTML = '<span class="spinner" style="width: 12px; height: 12px;"></span>';
+
+            try {
+                const data = await fetchFromGas('getAttachment', { messageId: messageId, attachmentName: filename });
+                if (data && data.dataUrl) {
+                    const link = document.createElement('a');
+                    link.href = data.dataUrl;
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    // Restore download icon
+                    statusSpan.innerHTML = `
+                        <button class="btn btn-outline" onclick="downloadAttachment('${messageId}', '${escapeHtml(filename)}', ${index})" style="padding: 2px 6px; font-size: 11px; height: auto; border: none; background: transparent; color: var(--accent-emerald); cursor: pointer;" title="Tải xuống tệp đính kèm">
+                            <i data-lucide="download" style="width: 14px; height: 14px;"></i>
+                        </button>
+                    `;
+                    lucide.createIcons();
+                } else {
+                    throw new Error("Không lấy được link tải xuống.");
+                }
+            } catch (err) {
+                console.error("Lỗi khi tải tệp đính kèm:", err);
+                alert(`Không thể tải tệp đính kèm: ${err.message}`);
+                statusSpan.innerHTML = `
+                    <button class="btn btn-outline" onclick="downloadAttachment('${messageId}', '${escapeHtml(filename)}', ${index})" style="padding: 2px 6px; font-size: 11px; height: auto; border: none; background: transparent; color: var(--accent-rose); cursor: pointer;" title="Tải lại">
+                        <i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i>
+                    </button>
+                `;
+                lucide.createIcons();
+            }
         }
 
         // Email View Format & Background Handlers
