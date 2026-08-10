@@ -13,16 +13,17 @@ export default async function handler(req, res) {
         });
     }
 
-    if (password === envPassword) {
+    if (password && password.toString().trim() === envPassword.toString().trim()) {
         // Session duration: 15 minutes (15 * 60 * 1000 ms)
-        const expiresInMs = 15 * 60 * 1000;
+        const expiresInSeconds = 900;
+        const expiresInMs = expiresInSeconds * 1000;
         const expiresAt = Date.now() + expiresInMs;
         
         return res.status(200).json({ 
             success: true, 
             message: 'Xác thực thành công!', 
             expiresAt: expiresAt,
-            expiresInSeconds: 900
+            expiresInSeconds: expiresInSeconds
         });
     } else {
         return res.status(401).json({ error: 'Mật khẩu không đúng! Vui lòng thử lại.' });

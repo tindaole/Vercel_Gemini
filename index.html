@@ -560,7 +560,12 @@
             </p>
 
             <form onsubmit="submitPasswordAuth(event)" style="display: flex; flex-direction: column; gap: 14px;">
-                <input type="password" id="authPasswordInput" class="input" placeholder="Nhập mật khẩu..." autofocus required style="text-align: center; font-size: 16px; letter-spacing: 2px;">
+                <div style="position: relative;">
+                    <input type="password" id="authPasswordInput" class="input" placeholder="Nhập mật khẩu..." autofocus required style="text-align: center; font-size: 16px; letter-spacing: 2px; padding-right: 42px;">
+                    <button type="button" onclick="toggleAuthPasswordVisibility()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px;" title="Hiện / Ẩn mật khẩu">
+                        <i data-lucide="eye" id="authEyeIcon" style="width: 18px; height: 18px;"></i>
+                    </button>
+                </div>
                 <button type="submit" class="btn" id="authSubmitBtn" style="width: 100%; justify-content: center; padding: 12px;">
                     <i data-lucide="key"></i> Mở Khóa Workspace
                 </button>
@@ -1198,9 +1203,24 @@
             sessionInterval = setInterval(updateTimer, 1000);
         }
 
+        function toggleAuthPasswordVisibility() {
+            const input = document.getElementById('authPasswordInput');
+            const icon = document.getElementById('authEyeIcon');
+            if (!input || !icon) return;
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.setAttribute('data-lucide', 'eye-off');
+            } else {
+                input.type = 'password';
+                icon.setAttribute('data-lucide', 'eye');
+            }
+            lucide.createIcons();
+        }
+
         async function submitPasswordAuth(event) {
             event.preventDefault();
-            const password = document.getElementById('authPasswordInput').value;
+            const passwordInput = document.getElementById('authPasswordInput');
+            const password = passwordInput ? passwordInput.value.trim() : '';
             const btn = document.getElementById('authSubmitBtn');
             const errBox = document.getElementById('authErrorBox');
 
@@ -1220,7 +1240,9 @@
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'Xác thực thất bại');
 
-                localStorage.setItem('myboard_auth_expires_at', data.expiresAt);
+                const expiresInSecs = data.expiresInSeconds || 900;
+                const clientExpiresAt = Date.now() + (expiresInSecs * 1000);
+                localStorage.setItem('myboard_auth_expires_at', clientExpiresAt);
                 unlockBoard();
 
                 if (state.gasConfigured) {
