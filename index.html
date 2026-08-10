@@ -769,10 +769,10 @@
                         <!-- Email View Format & Theme Bar -->
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                             <div style="display: flex; gap: 8px;">
-                                <button class="btn btn-outline" style="padding: 4px 10px; font-size: 11px;" onclick="setEmailViewFormat('html')">
+                                <button class="btn btn-outline" id="btnFormatHtml" style="padding: 4px 10px; font-size: 11px; background: var(--primary); color: #ffffff;" onclick="setEmailViewFormat('html')">
                                     <i data-lucide="code"></i> HTML
                                 </button>
-                                <button class="btn btn-outline" style="padding: 4px 10px; font-size: 11px;" onclick="setEmailViewFormat('plain')">
+                                <button class="btn btn-outline" id="btnFormatPlain" style="padding: 4px 10px; font-size: 11px;" onclick="setEmailViewFormat('plain')">
                                     <i data-lucide="file-text"></i> Văn bản
                                 </button>
                             </div>
@@ -1487,21 +1487,32 @@
             // Show temporary loading indicator in body and attachments
             document.getElementById('detailSubject').textContent = email.subject;
             document.getElementById('detailSender').textContent = `Từ: ${email.sender} | Ngày: ${new Date(email.date).toLocaleString('vi-VN')}`;
-            document.getElementById('detailBodyContent').innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 40px 0;"><span class="spinner"></span> Đang tải nội dung email...</p>';
+            document.getElementById('detailBodyContent').innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 40px 0;"><span class="spinner"></span> Đang tải nội dung email đầy đủ...</p>';
             document.getElementById('detailAttachments').innerHTML = '';
 
+            updateFormatButtons();
+
             // If messages are not loaded, fetch them asynchronously
-            if (!email.messages) {
+            if (!email.messages || email.messages.length === 0) {
                 try {
                     const data = await fetchFromGas('getThreadDetails', { threadId: email.threadId });
-                    email.messages = data.messages || [];
+                    email.messages = (data && data.messages) ? data.messages : [];
                     // Keep in sync
                     if (state.selectedEmail && state.selectedEmail.threadId === email.threadId) {
                         state.selectedEmail.messages = email.messages;
                     }
                 } catch (err) {
                     console.error("Lỗi khi tải chi tiết email:", err);
-                    document.getElementById('detailBodyContent').innerHTML = `<p style="color: var(--accent-rose);">Lỗi khi tải nội dung email: ${escapeHtml(err.message)}</p>`;
+                    document.getElementById('detailBodyContent').innerHTML = `
+                        <div style="padding: 14px; border-radius: 8px; background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.3); color: var(--accent-rose); margin-bottom: 14px; font-size: 13px;">
+                            <strong>Không thể tải nội dung chi tiết:</strong> ${escapeHtml(err.message)}
+                            <br><span style="color: var(--text-muted);">Vui lòng kiểm tra và cập nhật mã Google Apps Script (.gs) mới nhất trên script.google.com.</span>
+                        </div>
+                        <div style="font-size: 14px; line-height: 1.6; color: inherit;">
+                            <strong style="color: var(--text-muted); font-size: 12px; display: block; margin-bottom: 6px;">Bản tóm tắt (Snippet):</strong>
+                            <pre style="white-space: pre-wrap; word-wrap: break-word; font-family: inherit; font-size: 14px; margin: 0; color: inherit;">${escapeHtml(email.snippet || '')}</pre>
+                        </div>
+                    `;
                     return;
                 }
             }
@@ -1590,7 +1601,26 @@
         // Email View Format & Background Handlers
         function setEmailViewFormat(format) {
             state.emailViewFormat = format;
+            updateFormatButtons();
             renderEmailContent();
+        }
+
+        function updateFormatButtons() {
+            const btnHtml = document.getElementById('btnFormatHtml');
+            const btnPlain = document.getElementById('btnFormatPlain');
+            if (btnHtml && btnPlain) {
+                if (state.emailViewFormat === 'html') {
+                    btnHtml.style.background = 'var(--primary)';
+                    btnHtml.style.color = '#ffffff';
+                    btnPlain.style.background = 'transparent';
+                    btnPlain.style.color = 'var(--text-main)';
+                } else {
+                    btnPlain.style.background = 'var(--primary)';
+                    btnPlain.style.color = '#ffffff';
+                    btnHtml.style.background = 'transparent';
+                    btnHtml.style.color = 'var(--text-main)';
+                }
+            }
         }
 
         function toggleEmailBackground() {
@@ -1606,8 +1636,6 @@
             if (!state.selectedEmail) return;
 
             const email = state.selectedEmail;
-            const lastMsg = email.messages && email.messages.length > 0 ? email.messages[email.messages.length - 1] : null;
-
             const contentDiv = document.getElementById('detailBodyContent');
             const boxDiv = document.getElementById('detailBodyBox');
 
@@ -1617,20 +1645,47 @@
             boxDiv.style.background = isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.7)';
             boxDiv.style.color = isLight ? '#1f2937' : '#f8fafc';
 
-            const rawHtml = lastMsg ? (lastMsg.htmlBody || lastMsg.body) : email.snippet;
-            const rawPlain = lastMsg ? (lastMsg.plainBody || lastMsg.body) : email.snippet;
+            const messages = (email.messages && email.messages.length > 0) ? email.messages : null;
 
-            if (state.emailViewFormat === 'plain') {
-                contentDiv.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word; font-family: inherit; font-size: 14px; margin: 0; color: inherit;">${escapeHtml(rawPlain || rawHtml || '')}</pre>`;
-            } else {
-                if (rawHtml && rawHtml.trim()) {
-                    contentDiv.innerHTML = rawHtml;
-                } else if (rawPlain) {
-                    contentDiv.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word; font-family: inherit; font-size: 14px; margin: 0; color: inherit;">${escapeHtml(rawPlain)}</pre>`;
-                } else {
-                    contentDiv.innerHTML = '<p style="color: #94a3b8; font-style: italic;">(Không có nội dung email)</p>';
-                }
+            if (!messages) {
+                contentDiv.innerHTML = `
+                    <div style="padding: 10px 14px; border-radius: 6px; background: rgba(99, 102, 241, 0.08); color: var(--text-muted); font-size: 13px; margin-bottom: 12px;">
+                        Đang hiển thị bản xem trước:
+                    </div>
+                    <pre style="white-space: pre-wrap; word-wrap: break-word; font-family: inherit; font-size: 14px; margin: 0; color: inherit;">${escapeHtml(email.snippet || '')}</pre>
+                `;
+                return;
             }
+
+            contentDiv.innerHTML = messages.map((m, idx) => {
+                const rawHtml = m.htmlBody || m.body || '';
+                const rawPlain = m.plainBody || m.body || '';
+
+                let bodyHtml = '';
+                if (state.emailViewFormat === 'plain') {
+                    bodyHtml = `<pre style="white-space: pre-wrap; word-wrap: break-word; font-family: inherit; font-size: 14px; margin: 0; color: inherit; line-height: 1.6;">${escapeHtml(rawPlain || rawHtml)}</pre>`;
+                } else {
+                    if (rawHtml && rawHtml.trim()) {
+                        bodyHtml = `<div class="email-html-body" style="line-height: 1.6;">${rawHtml}</div>`;
+                    } else if (rawPlain) {
+                        bodyHtml = `<pre style="white-space: pre-wrap; word-wrap: break-word; font-family: inherit; font-size: 14px; margin: 0; color: inherit; line-height: 1.6;">${escapeHtml(rawPlain)}</pre>`;
+                    } else {
+                        bodyHtml = '<p style="color: #94a3b8; font-style: italic;">(Không có nội dung email)</p>';
+                    }
+                }
+
+                return `
+                    <div class="thread-message-item" style="${idx > 0 ? 'margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(148, 163, 184, 0.2);' : ''}">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 12px; color: #64748b; background: rgba(0,0,0,0.03); padding: 8px 12px; border-radius: 8px;">
+                            <div><strong style="color: inherit;">${escapeHtml(m.from || 'Người gửi')}</strong> &rarr; ${escapeHtml(m.to || 'Me')}</div>
+                            <div>${new Date(m.date).toLocaleString('vi-VN')}</div>
+                        </div>
+                        <div style="font-size: 14px; word-break: break-word;">
+                            ${bodyHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
 
             // Ensure images inside email body don't overflow
             contentDiv.querySelectorAll('img').forEach(img => {
