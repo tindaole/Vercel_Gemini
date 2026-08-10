@@ -546,8 +546,8 @@
 </head>
 <body>
 
-    <!-- Password Lock Screen Overlay -->
-    <div id="authLockOverlay" class="modal open" style="z-index: 9999; background: var(--bg-body);">
+    <!-- Password Lock Screen Overlay (Temporarily Disabled for Testing) -->
+    <div id="authLockOverlay" class="modal" style="display: none !important; z-index: 9999; background: var(--bg-body);">
         <div class="modal-content" style="max-width: 420px; text-align: center; border: 1px solid var(--bg-card-border); background: var(--sidebar-bg);">
             <div style="width: 56px; height: 56px; border-radius: 16px; background: linear-gradient(135deg, var(--primary), var(--accent-purple)); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto; color: white; box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);">
                 <i data-lucide="lock" style="width: 28px; height: 28px;"></i>
@@ -1114,7 +1114,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             restoreSidebarState();
             applyTheme(state.theme);
-            checkSession();
+            // checkSession(); // Temporarily disabled
             checkGasConfiguration();
             loadGeminiModels();
             initTodos();
@@ -1152,16 +1152,8 @@
 
         // Password & Session Management
         function checkSession() {
-            try {
-                const expiresAt = localStorage.getItem('myboard_auth_expires_at');
-                if (!expiresAt || Date.now() > Number(expiresAt)) {
-                    lockBoard();
-                } else {
-                    unlockBoard();
-                }
-            } catch (e) {
-                lockBoard();
-            }
+            // Temporarily unlocked
+            unlockBoard();
         }
 
         function unlockBoard() {
