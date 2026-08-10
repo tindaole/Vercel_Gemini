@@ -198,11 +198,35 @@ function getEmails(maxResults, query) {
   for (var i = 0; i < threads.length; i++) {
     var thread = threads[i];
     var messages = thread.getMessages();
-    var lastMsg = messages[messages.length - 1];
+    var lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
     
     var firstMsgSubject = messages.length > 0 ? messages[0].getSubject() : "";
     var lastMsgSubject = lastMsg ? lastMsg.getSubject() : "";
     
+    var messagesData = messages.map(function(m) {
+      var rawAtts = m.getAttachments();
+      var attachments = rawAtts.map(function(att) {
+        return {
+          name: att.getName(),
+          mimeType: att.getContentType(),
+          size: att.getSize()
+        };
+      });
+
+      return {
+        id: m.getId(),
+        from: m.getFrom(),
+        to: m.getTo(),
+        date: m.getDate().toISOString(),
+        subject: m.getSubject(),
+        snippet: getSnippetText(m),
+        htmlBody: m.getBody() || "",
+        plainBody: m.getPlainBody() || "",
+        body: m.getBody() || m.getPlainBody() || "",
+        attachments: attachments
+      };
+    });
+
     resultList.push({
       threadId: thread.getId(),
       messageId: lastMsg ? lastMsg.getId() : "",
@@ -211,7 +235,8 @@ function getEmails(maxResults, query) {
       sender: lastMsg ? lastMsg.getFrom() : "",
       date: lastMsg ? lastMsg.getDate().toISOString() : new Date().toISOString(),
       snippet: getSnippetText(lastMsg),
-      messageCount: thread.getMessageCount()
+      messageCount: thread.getMessageCount(),
+      messages: messagesData
     });
   }
   return resultList;

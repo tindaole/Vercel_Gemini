@@ -372,6 +372,11 @@
         .email-item.unread {
             border-left: 4px solid var(--primary);
         }
+        .email-item.active {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.12);
+            box-shadow: 0 0 0 1px var(--primary);
+        }
         .email-header {
             display: flex;
             justify-content: space-between;
@@ -1459,16 +1464,19 @@
                 return;
             }
 
-            const html = state.emails.map((email, idx) => `
-                <div class="email-item ${email.unread ? 'unread' : ''}" onclick="selectEmail(${idx})">
-                    <div class="email-header">
-                        <strong style="color: var(--text-main);">${escapeHtml(email.sender)}</strong>
-                        <span>${new Date(email.date).toLocaleDateString('vi-VN')}</span>
+            const html = state.emails.map((email, idx) => {
+                const isSelected = state.selectedEmail && state.selectedEmail.threadId === email.threadId;
+                return `
+                    <div class="email-item ${email.unread ? 'unread' : ''} ${isSelected ? 'active' : ''}" onclick="selectEmail(${idx})">
+                        <div class="email-header">
+                            <strong style="color: var(--text-main);">${escapeHtml(email.sender)}</strong>
+                            <span>${new Date(email.date).toLocaleDateString('vi-VN')}</span>
+                        </div>
+                        <div class="email-subject">${escapeHtml(email.subject)}</div>
+                        <div class="email-snippet">${escapeHtml(email.snippet)}</div>
                     </div>
-                    <div class="email-subject">${escapeHtml(email.subject)}</div>
-                    <div class="email-snippet">${escapeHtml(email.snippet)}</div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
 
             overviewList.innerHTML = html;
             fullList.innerHTML = html;
@@ -1480,48 +1488,61 @@
             state.selectedEmail = email;
             state.replyMode = 'reply';
 
+            // Highlight selected item in list
+            renderEmailLists();
+
             document.getElementById('emailDetailPlaceholder').style.display = 'none';
             const container = document.getElementById('emailDetailContainer');
             container.style.display = 'block';
 
-            // Show temporary loading indicator in body and attachments
             document.getElementById('detailSubject').textContent = email.subject;
             document.getElementById('detailSender').textContent = `Từ: ${email.sender} | Ngày: ${new Date(email.date).toLocaleString('vi-VN')}`;
-            document.getElementById('detailBodyContent').innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 40px 0;"><span class="spinner"></span> Đang tải nội dung email đầy đủ...</p>';
-            document.getElementById('detailAttachments').innerHTML = '';
 
             updateFormatButtons();
 
-            // If messages are not loaded, fetch them asynchronously
-            if (!email.messages || email.messages.length === 0) {
-                try {
-                    const data = await fetchFromGas('getThreadDetails', { threadId: email.threadId });
-                    email.messages = (data && data.messages) ? data.messages : [];
-                    // Keep in sync
-                    if (state.selectedEmail && state.selectedEmail.threadId === email.threadId) {
-                        state.selectedEmail.messages = email.messages;
-                    }
-                } catch (err) {
-                    console.error("Lỗi khi tải chi tiết email:", err);
-                    document.getElementById('detailBodyContent').innerHTML = `
-                        <div style="padding: 14px; border-radius: 8px; background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.3); color: var(--accent-rose); margin-bottom: 14px; font-size: 13px;">
-                            <strong>Không thể tải nội dung chi tiết:</strong> ${escapeHtml(err.message)}
-                            <br><span style="color: var(--text-muted);">Vui lòng kiểm tra và cập nhật mã Google Apps Script (.gs) mới nhất trên script.google.com.</span>
-                        </div>
-                        <div style="font-size: 14px; line-height: 1.6; color: inherit;">
-                            <strong style="color: var(--text-muted); font-size: 12px; display: block; margin-bottom: 6px;">Bản tóm tắt (Snippet):</strong>
-                            <pre style="white-space: pre-wrap; word-wrap: break-word; font-family: inherit; font-size: 14px; margin: 0; color: inherit;">${escapeHtml(email.snippet || '')}</pre>
-                        </div>
-                    `;
-                    return;
+            // If messages are already present, render immediately (0ms delay)
+            if (email.messages && email.messages.length > 0) {
+                renderEmailContent();
+                renderEmailAttachments(email);
+                setReplyMode('reply');
+                lucide.createIcons();
+                return;
+            }
+
+            // Fallback: If messages are not loaded, fetch them asynchronously
+            document.getElementById('detailBodyContent').innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 40px 0;"><span class="spinner"></span> Đang tải nội dung email đầy đủ...</p>';
+            document.getElementById('detailAttachments').innerHTML = '';
+
+            try {
+                const data = await fetchFromGas('getThreadDetails', { threadId: email.threadId });
+                email.messages = (data && data.messages) ? data.messages : [];
+                if (state.selectedEmail && state.selectedEmail.threadId === email.threadId) {
+                    state.selectedEmail.messages = email.messages;
                 }
+            } catch (err) {
+                console.error("Lỗi khi tải chi tiết email:", err);
+                document.getElementById('detailBodyContent').innerHTML = `
+                    <div style="padding: 14px; border-radius: 8px; background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.3); color: var(--accent-rose); margin-bottom: 14px; font-size: 13px;">
+                        <strong>Không thể tải nội dung chi tiết:</strong> ${escapeHtml(err.message)}
+                        <br><span style="color: var(--text-muted);">Vui lòng kiểm tra và cập nhật mã Google Apps Script (.gs) mới nhất trên script.google.com.</span>
+                    </div>
+                    <div style="font-size: 14px; line-height: 1.6; color: inherit;">
+                        <strong style="color: var(--text-muted); font-size: 12px; display: block; margin-bottom: 6px;">Bản tóm tắt (Snippet):</strong>
+                        <pre style="white-space: pre-wrap; word-wrap: break-word; font-family: inherit; font-size: 14px; margin: 0; color: inherit;">${escapeHtml(email.snippet || '')}</pre>
+                    </div>
+                `;
+                return;
             }
 
             renderEmailContent();
+            renderEmailAttachments(email);
+            setReplyMode('reply');
+            lucide.createIcons();
+        }
 
-            // Render Attachments
+        function renderEmailAttachments(email) {
             let allAtts = [];
-            if (email.messages) {
+            if (email && email.messages) {
                 email.messages.forEach(m => {
                     if (m.attachments) {
                         m.attachments.forEach(att => {
@@ -1554,10 +1575,6 @@
                 `;
             } else {
                 attDiv.innerHTML = '';
-            }
-
-            setReplyMode('reply');
-            lucide.createIcons();
         }
 
         async function downloadAttachment(messageId, filename, index) {
