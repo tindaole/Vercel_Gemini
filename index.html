@@ -1118,6 +1118,7 @@
             checkGasConfiguration();
             loadGeminiModels();
             initTodos();
+            lucide.createIcons();
         });
 
         // Collapsible Sidebar Handler
@@ -1371,9 +1372,10 @@
                 // Silently configure the daily Telegram trigger
                 fetchFromGas('setupTelegramTrigger').catch(err => console.error("Lỗi setup Telegram trigger:", err));
             } catch (err) {
+                console.error("GAS connection error:", err);
                 state.gasConfigured = false;
                 const isEnvMissing = err.message.includes('GAS_URL');
-                updateGasStatus(false, isEnvMissing ? 'Chưa cấu hình trên Vercel' : 'Kết nối thất bại');
+                updateGasStatus(false, isEnvMissing ? 'Chưa cấu hình trên Vercel' : 'Kết nối thất bại (Nhấn để thử lại)');
             }
         }
 

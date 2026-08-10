@@ -17,7 +17,8 @@ export default async function handler(req, res) {
                 headers: { 
                     'Content-Type': 'application/json' 
                 },
-                body: JSON.stringify(req.body)
+                body: JSON.stringify(req.body),
+                redirect: 'follow'
             });
         } else {
             // Forward GET request with query params
@@ -25,11 +26,20 @@ export default async function handler(req, res) {
             const separator = gasUrl.includes('?') ? '&' : '?';
             const urlWithParams = `${gasUrl}${separator}${queryParams.toString()}`;
             response = await fetch(urlWithParams, {
-                method: 'GET'
+                method: 'GET',
+                redirect: 'follow'
             });
         }
 
-        const data = await response.json();
+        const text = await response.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (parseErr) {
+            console.error("Non-JSON response from Google Apps Script:", text);
+            return res.status(502).json({ error: 'Phản hồi không hợp lệ từ Google Apps Script: ' + text.substring(0, 200) });
+        }
+
         res.status(200).json(data);
     } catch (error) {
         console.error("Lỗi khi kết nối với Google Apps Script:", error);
