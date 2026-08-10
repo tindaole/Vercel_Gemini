@@ -1152,27 +1152,43 @@
 
         // Password & Session Management
         function checkSession() {
-            const expiresAt = localStorage.getItem('myboard_auth_expires_at');
-            if (!expiresAt || Date.now() > Number(expiresAt)) {
+            try {
+                const expiresAt = localStorage.getItem('myboard_auth_expires_at');
+                if (!expiresAt || Date.now() > Number(expiresAt)) {
+                    lockBoard();
+                } else {
+                    unlockBoard();
+                }
+            } catch (e) {
                 lockBoard();
-            } else {
-                unlockBoard();
             }
         }
 
         function unlockBoard() {
-            document.getElementById('authLockOverlay').classList.remove('open');
-            document.getElementById('sessionPill').style.display = 'inline-flex';
+            const overlay = document.getElementById('authLockOverlay');
+            if (overlay) {
+                overlay.classList.remove('open');
+                overlay.style.display = 'none';
+            }
+            const pill = document.getElementById('sessionPill');
+            if (pill) pill.style.display = 'inline-flex';
             startSessionTimer();
         }
 
         function lockBoard() {
-            localStorage.removeItem('myboard_auth_expires_at');
+            try { localStorage.removeItem('myboard_auth_expires_at'); } catch (e) {}
             if (sessionInterval) clearInterval(sessionInterval);
-            document.getElementById('sessionPill').style.display = 'none';
-            document.getElementById('authLockOverlay').classList.add('open');
-            document.getElementById('authPasswordInput').value = '';
-            document.getElementById('authErrorBox').style.display = 'none';
+            const pill = document.getElementById('sessionPill');
+            if (pill) pill.style.display = 'none';
+            const overlay = document.getElementById('authLockOverlay');
+            if (overlay) {
+                overlay.classList.add('open');
+                overlay.style.display = 'flex';
+            }
+            const passInput = document.getElementById('authPasswordInput');
+            if (passInput) passInput.value = '';
+            const errBox = document.getElementById('authErrorBox');
+            if (errBox) errBox.style.display = 'none';
             lucide.createIcons();
         }
 
@@ -1184,9 +1200,16 @@
             if (sessionInterval) clearInterval(sessionInterval);
 
             function updateTimer() {
-                const expiresAt = Number(localStorage.getItem('myboard_auth_expires_at') || 0);
-                const remainingMs = expiresAt - Date.now();
+                let expiresAt = 0;
+                try {
+                    expiresAt = Number(localStorage.getItem('myboard_auth_expires_at') || 0);
+                } catch (e) {}
 
+                if (!expiresAt) {
+                    return;
+                }
+
+                const remainingMs = expiresAt - Date.now();
                 if (remainingMs <= 0) {
                     lockBoard();
                     alert('Phiên đăng nhập đã hết hạn (15 phút). Vui lòng nhập lại mật khẩu!');
@@ -1196,7 +1219,8 @@
                 const totalSeconds = Math.floor(remainingMs / 1000);
                 const mins = Math.floor(totalSeconds / 60);
                 const secs = totalSeconds % 60;
-                document.getElementById('sessionTimerText').textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+                const timerText = document.getElementById('sessionTimerText');
+                if (timerText) timerText.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
             }
 
             updateTimer();
@@ -1242,7 +1266,11 @@
 
                 const expiresInSecs = data.expiresInSeconds || 900;
                 const clientExpiresAt = Date.now() + (expiresInSecs * 1000);
-                localStorage.setItem('myboard_auth_expires_at', clientExpiresAt);
+                try {
+                    localStorage.setItem('myboard_auth_expires_at', clientExpiresAt);
+                } catch (e) {
+                    console.warn("Storage restricted:", e);
+                }
                 unlockBoard();
 
                 if (state.gasConfigured) {
