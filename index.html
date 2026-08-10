@@ -546,34 +546,7 @@
 </head>
 <body>
 
-    <!-- Password Lock Screen Overlay (Temporarily Disabled for Testing) -->
-    <div id="authLockOverlay" class="modal" style="display: none !important; z-index: 9999; background: var(--bg-body);">
-        <div class="modal-content" style="max-width: 420px; text-align: center; border: 1px solid var(--bg-card-border); background: var(--sidebar-bg);">
-            <div style="width: 56px; height: 56px; border-radius: 16px; background: linear-gradient(135deg, var(--primary), var(--accent-purple)); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto; color: white; box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);">
-                <i data-lucide="lock" style="width: 28px; height: 28px;"></i>
-            </div>
-            
-            <h2 style="font-size: 22px; font-weight: 700; margin-bottom: 8px;">MyBoard Security</h2>
-            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 24px; line-height: 1.5;">
-                Vui lòng nhập mật khẩu để truy cập workspace.<br>
-                <span style="font-size: 12px; opacity: 0.8;">(Phiên đăng nhập tự động kết thúc sau 15 phút)</span>
-            </p>
 
-            <form onsubmit="submitPasswordAuth(event)" style="display: flex; flex-direction: column; gap: 14px;">
-                <div style="position: relative;">
-                    <input type="password" id="authPasswordInput" class="input" placeholder="Nhập mật khẩu..." autofocus required style="text-align: center; font-size: 16px; letter-spacing: 2px; padding-right: 42px;">
-                    <button type="button" onclick="toggleAuthPasswordVisibility()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px;" title="Hiện / Ẩn mật khẩu">
-                        <i data-lucide="eye" id="authEyeIcon" style="width: 18px; height: 18px;"></i>
-                    </button>
-                </div>
-                <button type="submit" class="btn" id="authSubmitBtn" style="width: 100%; justify-content: center; padding: 12px;">
-                    <i data-lucide="key"></i> Mở Khóa Workspace
-                </button>
-            </form>
-
-            <div id="authErrorBox" style="display: none; margin-top: 16px; padding: 10px 14px; border-radius: 8px; background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); font-size: 13px; text-align: center;"></div>
-        </div>
-    </div>
 
     <!-- Sidebar Navigation -->
     <aside class="sidebar">
@@ -642,13 +615,6 @@
                 <p id="viewSubtitle">Chào mừng trở lại! Dưới đây là thông tin lịch trình & email của bạn.</p>
             </div>
             <div style="display: flex; align-items: center; gap: 12px;">
-                <div class="status-pill" id="sessionPill" style="display: none; border-color: rgba(245, 158, 11, 0.3);">
-                    <i data-lucide="clock" style="width: 14px; height: 14px; color: var(--accent-amber);"></i>
-                    <span id="sessionTimerText" style="font-family: monospace; font-weight: 600;">15:00</span>
-                </div>
-                <button class="btn btn-outline" style="padding: 6px 12px; font-size: 12px; color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.3);" onclick="lockBoardManually()" title="Khóa trang ngay lập tức">
-                    <i data-lucide="log-out"></i> Khóa trang
-                </button>
                 <div class="status-pill">
                     <div class="dot" id="gasStatusDot"></div>
                     <span id="gasStatusText">GAS: Chưa cấu hình</span>
@@ -1151,134 +1117,11 @@
 
         // toggleGasUrlMask removed (GAS_URL configured on server)
 
-        // Password & Session Management
-        function checkSession() {
-            // Temporarily unlocked
-            unlockBoard();
-        }
-
-        function unlockBoard() {
-            const overlay = document.getElementById('authLockOverlay');
-            if (overlay) {
-                overlay.classList.remove('open');
-                overlay.style.display = 'none';
-            }
-            const pill = document.getElementById('sessionPill');
-            if (pill) pill.style.display = 'inline-flex';
-            startSessionTimer();
-        }
-
-        function lockBoard() {
-            try { localStorage.removeItem('myboard_auth_expires_at'); } catch (e) {}
-            if (sessionInterval) clearInterval(sessionInterval);
-            const pill = document.getElementById('sessionPill');
-            if (pill) pill.style.display = 'none';
-            const overlay = document.getElementById('authLockOverlay');
-            if (overlay) {
-                overlay.classList.add('open');
-                overlay.style.display = 'flex';
-            }
-            const passInput = document.getElementById('authPasswordInput');
-            if (passInput) passInput.value = '';
-            const errBox = document.getElementById('authErrorBox');
-            if (errBox) errBox.style.display = 'none';
-            lucide.createIcons();
-        }
-
-        function lockBoardManually() {
-            lockBoard();
-        }
-
-        function startSessionTimer() {
-            if (sessionInterval) clearInterval(sessionInterval);
-
-            function updateTimer() {
-                let expiresAt = 0;
-                try {
-                    expiresAt = Number(localStorage.getItem('myboard_auth_expires_at') || 0);
-                } catch (e) {}
-
-                if (!expiresAt) {
-                    return;
-                }
-
-                const remainingMs = expiresAt - Date.now();
-                if (remainingMs <= 0) {
-                    lockBoard();
-                    alert('Phiên đăng nhập đã hết hạn (15 phút). Vui lòng nhập lại mật khẩu!');
-                    return;
-                }
-
-                const totalSeconds = Math.floor(remainingMs / 1000);
-                const mins = Math.floor(totalSeconds / 60);
-                const secs = totalSeconds % 60;
-                const timerText = document.getElementById('sessionTimerText');
-                if (timerText) timerText.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-            }
-
-            updateTimer();
-            sessionInterval = setInterval(updateTimer, 1000);
-        }
-
-        function toggleAuthPasswordVisibility() {
-            const input = document.getElementById('authPasswordInput');
-            const icon = document.getElementById('authEyeIcon');
-            if (!input || !icon) return;
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.setAttribute('data-lucide', 'eye-off');
-            } else {
-                input.type = 'password';
-                icon.setAttribute('data-lucide', 'eye');
-            }
-            lucide.createIcons();
-        }
-
-        async function submitPasswordAuth(event) {
-            event.preventDefault();
-            const passwordInput = document.getElementById('authPasswordInput');
-            const password = passwordInput ? passwordInput.value.trim() : '';
-            const btn = document.getElementById('authSubmitBtn');
-            const errBox = document.getElementById('authErrorBox');
-
-            if (!password) return;
-
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner"></span> Đang xác thực...';
-            errBox.style.display = 'none';
-
-            try {
-                const res = await fetch('/api/auth', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password })
-                });
-
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Xác thực thất bại');
-
-                const expiresInSecs = data.expiresInSeconds || 900;
-                const clientExpiresAt = Date.now() + (expiresInSecs * 1000);
-                try {
-                    localStorage.setItem('myboard_auth_expires_at', clientExpiresAt);
-                } catch (e) {
-                    console.warn("Storage restricted:", e);
-                }
-                unlockBoard();
-
-                if (state.gasConfigured) {
-                    loadGmailData();
-                    loadCalendarData();
-                }
-            } catch (err) {
-                errBox.textContent = err.message;
-                errBox.style.display = 'block';
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i data-lucide="key"></i> Mở Khóa Workspace';
-                lucide.createIcons();
-            }
-        }
+        // Password & Session Management (Disabled)
+        function checkSession() {}
+        function unlockBoard() {}
+        function lockBoard() {}
+        function lockBoardManually() {}
 
         // Theme Toggle
         function toggleTheme() {
