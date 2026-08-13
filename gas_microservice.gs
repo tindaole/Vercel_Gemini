@@ -62,13 +62,17 @@ function handleRequest(e) {
       response.data = getTasks();
     } else if (action === "saveTasks") {
       response.data = saveTasks(data.tasksList);
+    } else if (action === "getNotes") {
+      response.data = getNotes();
+    } else if (action === "saveNotes") {
+      response.data = saveNotes(data.notesList);
     } else if (action === "setupTelegramTrigger") {
       response.data = setupTelegramTrigger();
     } else if (action === "testTelegramMessage") {
       response.data = sendDailyTelegramReminder();
     } else {
       response.status = "error";
-      response.error = "Invalid or missing action. Available: ping, getCalendarEvents, createCalendarEvent, getEmails, getThreadDetails, getAttachment, replyEmail, replyAllEmail, forwardEmail, deleteEmail, markReadEmail, sendEmail, getTasks, saveTasks, setupTelegramTrigger, testTelegramMessage";
+      response.error = "Invalid or missing action. Available: ping, getCalendarEvents, createCalendarEvent, getEmails, getThreadDetails, getAttachment, replyEmail, replyAllEmail, forwardEmail, deleteEmail, markReadEmail, sendEmail, getTasks, saveTasks, getNotes, saveNotes, setupTelegramTrigger, testTelegramMessage";
     }
   } catch (err) {
     response.status = "error";
@@ -420,6 +424,74 @@ function saveTasks(tasksList) {
     sheet.getRange(2, 1, rows.length, 6).setValues(rows);
   }
   return { success: true, count: tasksList ? tasksList.length : 0 };
+}
+
+/**
+ * Google Sheets Notes Functions
+ */
+function getOrCreateNotesSheet() {
+  var fileName = "MyBoard Tasks";
+  var files = DriveApp.getFilesByName(fileName);
+  var ss;
+  
+  if (files.hasNext()) {
+    ss = SpreadsheetApp.open(files.next());
+  } else {
+    ss = SpreadsheetApp.create(fileName);
+    var sheet = ss.getSheets()[0];
+    sheet.setName("Tasks");
+    sheet.appendRow(["ID", "Title", "Important", "Urgent", "Completed", "CreatedAt"]);
+  }
+  
+  var notesSheet = ss.getSheetByName("Notes");
+  if (!notesSheet) {
+    notesSheet = ss.insertSheet("Notes");
+    notesSheet.appendRow(["ID", "Title", "Content", "Color", "CreatedAt", "UpdatedAt"]);
+  }
+  
+  return notesSheet;
+}
+
+function getNotes() {
+  var sheet = getOrCreateNotesSheet();
+  var data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return [];
+  
+  var notes = [];
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    if (!row[0]) continue; // Skip empty rows
+    notes.push({
+      id: row[0].toString(),
+      title: row[1].toString(),
+      content: row[2].toString(),
+      color: row[3] ? row[3].toString() : "#ffffff",
+      createdAt: row[4] ? row[4].toString() : "",
+      updatedAt: row[5] ? row[5].toString() : ""
+    });
+  }
+  return notes;
+}
+
+function saveNotes(notesList) {
+  var sheet = getOrCreateNotesSheet();
+  sheet.clearContents();
+  sheet.appendRow(["ID", "Title", "Content", "Color", "CreatedAt", "UpdatedAt"]);
+  
+  if (notesList && notesList.length > 0) {
+    var rows = notesList.map(function(note) {
+      return [
+        note.id || "",
+        note.title || "",
+        note.content || "",
+        note.color || "#ffffff",
+        note.createdAt || new Date().toISOString(),
+        note.updatedAt || new Date().toISOString()
+      ];
+    });
+    sheet.getRange(2, 1, rows.length, 6).setValues(rows);
+  }
+  return { success: true, count: notesList ? notesList.length : 0 };
 }
 
 /**

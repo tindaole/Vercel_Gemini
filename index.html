@@ -536,6 +536,98 @@
             background: rgba(99, 102, 241, 0.03) !important;
         }
 
+        /* Notes Module Styling */
+        .note-card {
+            background: var(--bg-card);
+            border: 1px solid var(--bg-card-border);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: var(--shadow-glow);
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            min-height: 180px;
+        }
+        .note-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            border-color: var(--primary);
+        }
+        .note-card-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+        .note-card-content {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.5;
+            flex-grow: 1;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin-bottom: 16px;
+        }
+        .note-card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: var(--text-muted);
+            border-top: 1px solid rgba(255,255,255,0.06);
+            padding-top: 10px;
+        }
+        .note-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .note-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 6px;
+            color: var(--text-muted);
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .note-btn:hover {
+            color: var(--primary);
+            background: rgba(99, 102, 241, 0.08);
+        }
+        .note-btn.delete:hover {
+            color: var(--accent-rose);
+            background: rgba(244, 63, 94, 0.08);
+        }
+        .color-filter-btn {
+            transition: transform 0.15s;
+        }
+        .color-filter-btn:hover {
+            transform: scale(1.2);
+        }
+        .color-filter-btn.active {
+            box-shadow: 0 0 0 2px var(--primary) !important;
+            border-color: #fff !important;
+        }
+        .color-circle {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .color-circle:hover {
+            transform: scale(1.15);
+        }
+        .color-circle.selected {
+            border-color: #fff;
+            box-shadow: 0 0 0 2px var(--primary);
+        }
         @media (max-width: 900px) {
             .sidebar { width: 70px; padding: 16px 8px; }
             .brand-title, .nav-item span, .badge { display: none; }
@@ -613,6 +705,12 @@
                 <button onclick="switchTab('gemini', this)">
                     <i data-lucide="bot"></i>
                     <span>Trợ lý Gemini</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button onclick="switchTab('notes', this)">
+                    <i data-lucide="sticky-note"></i>
+                    <span>Ghi chú</span>
                 </button>
             </li>
             <li class="nav-item">
@@ -907,6 +1005,37 @@
             </div>
         </section>
 
+        <!-- VIEW 5b: NOTES -->
+        <section id="view-notes" class="tab-view">
+            <!-- Notes Toolbar -->
+            <div class="card" style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+                <div style="display: flex; gap: 12px; align-items: center; flex: 1; min-width: 280px; justify-content: space-between;">
+                    <div style="position: relative; flex: 1; max-width: 320px;">
+                        <input type="text" id="noteSearchInput" class="input" placeholder="Tìm kiếm ghi chú..." oninput="renderNotes()" style="padding-left: 36px; width: 100%;">
+                        <i data-lucide="search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--text-muted);"></i>
+                    </div>
+                    <!-- Color Filter Selection -->
+                    <div style="display: flex; gap: 8px; align-items: center; margin-left: 8px;">
+                        <span style="font-size: 13px; color: var(--text-muted);">Màu:</span>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            <button onclick="setNoteColorFilter('')" class="color-filter-btn active" id="filter-color-all" title="Tất cả màu" style="width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--primary); background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;"><i data-lucide="eye" style="width: 10px; height: 10px; color: var(--primary);"></i></button>
+                            <button onclick="setNoteColorFilter('#fef08a')" class="color-filter-btn" id="filter-color-yellow" title="Màu vàng" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--bg-card-border); background: #fef08a; cursor: pointer;"></button>
+                            <button onclick="setNoteColorFilter('#bfdbfe')" class="color-filter-btn" id="filter-color-blue" title="Màu xanh dương" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--bg-card-border); background: #bfdbfe; cursor: pointer;"></button>
+                            <button onclick="setNoteColorFilter('#bbf7d0')" class="color-filter-btn" id="filter-color-green" title="Màu xanh lá" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--bg-card-border); background: #bbf7d0; cursor: pointer;"></button>
+                            <button onclick="setNoteColorFilter('#fbcfe8')" class="color-filter-btn" id="filter-color-pink" title="Màu hồng" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--bg-card-border); background: #fbcfe8; cursor: pointer;"></button>
+                            <button onclick="setNoteColorFilter('#e9d5ff')" class="color-filter-btn" id="filter-color-purple" title="Màu tím" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--bg-card-border); background: #e9d5ff; cursor: pointer;"></button>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn" onclick="openNoteModal()"><i data-lucide="plus"></i> Thêm ghi chú</button>
+            </div>
+
+            <!-- Notes Grid -->
+            <div id="notesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
+                <!-- Dynamically Rendered Notes -->
+            </div>
+        </section>
+
         <!-- VIEW 6: TO-DO MATRIX -->
         <section id="view-todo" class="tab-view">
             <!-- Add Task Form -->
@@ -989,6 +1118,43 @@
         </section>
 
     </main>
+
+    <!-- Modal: Create/Edit Note -->
+    <div id="noteModal" class="modal">
+        <div class="modal-content" style="max-width: 480px;">
+            <h3 style="margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center;">
+                <span id="noteModalTitle">Thêm ghi chú mới</span>
+                <i data-lucide="x" style="cursor: pointer;" onclick="closeModal('noteModal')"></i>
+            </h3>
+            <form onsubmit="submitNoteSave(event)" style="display: flex; flex-direction: column; gap: 14px;">
+                <input type="hidden" id="noteIdInput">
+                <div>
+                    <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Tiêu đề:</label>
+                    <input type="text" id="noteTitleInput" class="input" placeholder="Ví dụ: Ý tưởng dự án mới..." required>
+                </div>
+                <div>
+                    <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Nội dung:</label>
+                    <textarea id="noteContentInput" class="input" rows="6" placeholder="Nhập nội dung ghi chú ở đây..." required style="resize: vertical; font-family: inherit;"></textarea>
+                </div>
+                <div>
+                    <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 8px;">Màu ghi chú:</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button type="button" onclick="selectNoteColor('#fef08a')" class="color-circle selected" id="color-choice-yellow" style="background: #fef08a;"></button>
+                        <button type="button" onclick="selectNoteColor('#bfdbfe')" class="color-circle" id="color-choice-blue" style="background: #bfdbfe;"></button>
+                        <button type="button" onclick="selectNoteColor('#bbf7d0')" class="color-circle" id="color-choice-green" style="background: #bbf7d0;"></button>
+                        <button type="button" onclick="selectNoteColor('#fbcfe8')" class="color-circle" id="color-choice-pink" style="background: #fbcfe8;"></button>
+                        <button type="button" onclick="selectNoteColor('#e9d5ff')" class="color-circle" id="color-choice-purple" style="background: #e9d5ff;"></button>
+                        <button type="button" onclick="selectNoteColor('#ffffff')" class="color-circle" id="color-choice-white" style="background: var(--bg-card); border: 1px solid var(--bg-card-border);"></button>
+                        <input type="hidden" id="noteColorValue" value="#fef08a">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 8px;">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('noteModal')">Hủy</button>
+                    <button type="submit" class="btn" id="saveNoteBtn">Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- Modal: New Calendar Event -->
     <div id="newEventModal" class="modal">
@@ -1102,7 +1268,9 @@
             emailBgMode: 'light',
             models: [],
             tasks: [],
-            maxEmails: 10
+            maxEmails: 10,
+            notes: [],
+            noteColorFilter: ''
         };
 
         let sessionInterval = null;
@@ -1314,6 +1482,7 @@
                 calendar: ['Lịch cá nhân', 'Theo dõi và tạo các sự kiện công việc sắp tới.'],
                 todo: ['Ma trận Công việc', 'Quản lý và ưu tiên các công việc theo ma trận Eisenhower (Quan trọng & Khẩn cấp).'],
                 gemini: ['Trợ lý Trí tuệ Nhân tạo', 'Đặt câu hỏi và nhận câu trả lời thông minh từ Gemini.'],
+                notes: ['Sổ tay ghi chú cá nhân', 'Tạo, sửa, xóa và phân loại màu sắc các ghi chú của bạn (lưu trữ trên Google Sheets).'],
                 settings: ['Cấu hình Microservice', 'Quản lý kết nối tới Google Apps Script cá nhân.']
             };
 
@@ -1328,6 +1497,9 @@
             if ((tabId === 'calendar' || tabId === 'overview') && state.calendarEvents.length === 0 && state.gasConfigured) {
                 loadCalendarData();
             }
+            if (tabId === 'notes' && state.notes.length === 0 && state.gasConfigured) {
+                loadNotesFromGas();
+            }
         }
 
         // GAS Microservice Communication Helper
@@ -1335,7 +1507,7 @@
             let url = '/api/gas';
             let options = {};
 
-            const isReadAction = action === 'ping' || action === 'getEmails' || action === 'getThreadDetails' || action === 'getAttachment' || action === 'getCalendarEvents' || method.toUpperCase() === 'GET';
+            const isReadAction = action === 'ping' || action === 'getEmails' || action === 'getThreadDetails' || action === 'getAttachment' || action === 'getCalendarEvents' || action === 'getNotes' || method.toUpperCase() === 'GET';
 
             if (isReadAction) {
                 const queryParams = new URLSearchParams(Object.assign({ action: action, _t: Date.now() }, params));
@@ -1374,6 +1546,7 @@
                 loadGmailData();
                 loadCalendarData();
                 loadTodosFromGas();
+                loadNotesFromGas();
                 
                 // Silently configure the daily Telegram trigger
                 fetchFromGas('setupTelegramTrigger').catch(err => console.error("Lỗi setup Telegram trigger:", err));
@@ -1408,6 +1581,7 @@
                 loadGmailData();
                 loadCalendarData();
                 loadTodosFromGas();
+                loadNotesFromGas();
             } catch (err) {
                 state.gasConfigured = false;
                 const isEnvMissing = err.message.includes('GAS_URL');
@@ -2334,6 +2508,228 @@
                 saveTodos();
                 renderTodos();
             }
+        }
+
+        // ==========================================
+        // NOTES MODULE LOGIC
+        // ==========================================
+        async function loadNotesFromGas() {
+            const grid = document.getElementById('notesGrid');
+            if (grid) {
+                grid.innerHTML = '<p style="color: var(--text-muted); text-align: center; grid-column: 1/-1; padding: 40px 0;"><span class="spinner"></span> Đang tải ghi chú từ Google Sheets...</p>';
+            }
+
+            try {
+                // Try reading from local storage first to make it responsive
+                const cached = localStorage.getItem('myboard_notes');
+                if (cached) {
+                    state.notes = JSON.parse(cached);
+                    renderNotes();
+                }
+
+                if (state.gasConfigured) {
+                    const notes = await fetchFromGas('getNotes');
+                    state.notes = notes || [];
+                    localStorage.setItem('myboard_notes', JSON.stringify(state.notes));
+                    renderNotes();
+                }
+            } catch (err) {
+                console.error("Lỗi khi tải ghi chú:", err);
+                if (grid) {
+                    grid.innerHTML = `<p style="color: var(--accent-rose); text-align: center; grid-column: 1/-1; padding: 20px;">Lỗi kết nối tới Google Sheets: ${err.message}</p>`;
+                }
+            }
+        }
+
+        async function saveNotesToGas() {
+            localStorage.setItem('myboard_notes', JSON.stringify(state.notes));
+            if (state.gasConfigured) {
+                try {
+                    await fetchFromGas('saveNotes', { notesList: state.notes }, 'POST');
+                } catch (err) {
+                    console.error("Lỗi khi lưu ghi chú vào Google Sheets:", err);
+                }
+            }
+        }
+
+        function renderNotes() {
+            const grid = document.getElementById('notesGrid');
+            if (!grid) return;
+
+            const searchQuery = document.getElementById('noteSearchInput').value.toLowerCase().trim();
+            
+            // Filter notes
+            const filteredNotes = state.notes.filter(note => {
+                const matchesSearch = note.title.toLowerCase().includes(searchQuery) || 
+                                      note.content.toLowerCase().includes(searchQuery);
+                const matchesColor = !state.noteColorFilter || note.color === state.noteColorFilter;
+                return matchesSearch && matchesColor;
+            });
+
+            if (filteredNotes.length === 0) {
+                grid.innerHTML = `<p style="color: var(--text-muted); text-align: center; grid-column: 1/-1; padding: 40px 0;">Không tìm thấy ghi chú nào.</p>`;
+                return;
+            }
+
+            // Map UI colors for light/dark mode compatibility and premium looks
+            const colorMapping = {
+                '#fef08a': { border: '#f59e0b', text: '#f59e0b', bg: 'rgba(254, 240, 138, 0.08)' },
+                '#bfdbfe': { border: '#3b82f6', text: '#3b82f6', bg: 'rgba(191, 219, 254, 0.08)' },
+                '#bbf7d0': { border: '#10b981', text: '#10b981', bg: 'rgba(187, 247, 208, 0.08)' },
+                '#fbcfe8': { border: '#ec4899', text: '#ec4899', bg: 'rgba(251, 207, 232, 0.08)' },
+                '#e9d5ff': { border: '#a855f7', text: '#a855f7', bg: 'rgba(233, 213, 255, 0.08)' },
+                '#ffffff': { border: 'var(--bg-card-border)', text: 'var(--text-main)', bg: 'var(--bg-card)' }
+            };
+
+            grid.innerHTML = filteredNotes.map(note => {
+                const config = colorMapping[note.color] || colorMapping['#ffffff'];
+                const displayDate = note.updatedAt ? new Date(note.updatedAt).toLocaleString('vi-VN') : '';
+                return `
+                    <div class="note-card" style="border-left: 5px solid ${config.border}; background: ${config.bg};">
+                        <div>
+                            <div class="note-card-title">${escapeHtml(note.title)}</div>
+                            <div class="note-card-content">${escapeHtml(note.content)}</div>
+                        </div>
+                        <div class="note-card-footer">
+                            <span>${displayDate}</span>
+                            <div class="note-actions">
+                                <button class="note-btn" onclick="openNoteModal('${note.id}')" title="Sửa ghi chú">
+                                    <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i>
+                                </button>
+                                <button class="note-btn delete" onclick="deleteNote('${note.id}')" title="Xóa ghi chú">
+                                    <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            lucide.createIcons();
+        }
+
+        function openNoteModal(noteId = '') {
+            const modal = document.getElementById('noteModal');
+            const modalTitle = document.getElementById('noteModalTitle');
+            const idInput = document.getElementById('noteIdInput');
+            const titleInput = document.getElementById('noteTitleInput');
+            const contentInput = document.getElementById('noteContentInput');
+
+            // Reset inputs
+            idInput.value = '';
+            titleInput.value = '';
+            contentInput.value = '';
+            
+            if (noteId) {
+                // Editing existing note
+                const note = state.notes.find(n => n.id === noteId);
+                if (note) {
+                    idInput.value = note.id;
+                    titleInput.value = note.title;
+                    contentInput.value = note.content;
+                    selectNoteColor(note.color);
+                    modalTitle.textContent = 'Sửa ghi chú';
+                }
+            } else {
+                // Creating new note
+                selectNoteColor('#fef08a'); // default pastel yellow
+                modalTitle.textContent = 'Thêm ghi chú mới';
+            }
+
+            modal.classList.add('open');
+            titleInput.focus();
+        }
+
+        function selectNoteColor(color) {
+            document.getElementById('noteColorValue').value = color;
+            
+            // Toggle selected class on UI circles
+            const mapping = {
+                '#fef08a': 'color-choice-yellow',
+                '#bfdbfe': 'color-choice-blue',
+                '#bbf7d0': 'color-choice-green',
+                '#fbcfe8': 'color-choice-pink',
+                '#e9d5ff': 'color-choice-purple',
+                '#ffffff': 'color-choice-white'
+            };
+
+            for (const key in mapping) {
+                const btn = document.getElementById(mapping[key]);
+                if (btn) {
+                    btn.classList.toggle('selected', key === color);
+                }
+            }
+        }
+
+        function setNoteColorFilter(color) {
+            state.noteColorFilter = color;
+
+            // Highlight active filter button
+            const mapping = {
+                '': 'filter-color-all',
+                '#fef08a': 'filter-color-yellow',
+                '#bfdbfe': 'filter-color-blue',
+                '#bbf7d0': 'filter-color-green',
+                '#fbcfe8': 'filter-color-pink',
+                '#e9d5ff': 'filter-color-purple'
+            };
+
+            for (const key in mapping) {
+                const btn = document.getElementById(mapping[key]);
+                if (btn) {
+                    btn.classList.toggle('active', key === color);
+                    if (key === '') {
+                        btn.style.borderColor = (color === '') ? 'var(--primary)' : 'var(--bg-card-border)';
+                    }
+                }
+            }
+            renderNotes();
+        }
+
+        async function submitNoteSave(event) {
+            event.preventDefault();
+            const id = document.getElementById('noteIdInput').value;
+            const title = document.getElementById('noteTitleInput').value.trim();
+            const content = document.getElementById('noteContentInput').value.trim();
+            const color = document.getElementById('noteColorValue').value;
+
+            if (!title || !content) return;
+
+            const nowStr = new Date().toISOString();
+
+            if (id) {
+                // Update note
+                const note = state.notes.find(n => n.id === id);
+                if (note) {
+                    note.title = title;
+                    note.content = content;
+                    note.color = color;
+                    note.updatedAt = nowStr;
+                }
+            } else {
+                // Add new note
+                const newNote = {
+                    id: 'note-' + Date.now(),
+                    title: title,
+                    content: content,
+                    color: color,
+                    createdAt: nowStr,
+                    updatedAt: nowStr
+                };
+                state.notes.unshift(newNote);
+            }
+
+            closeModal('noteModal');
+            renderNotes();
+            await saveNotesToGas();
+        }
+
+        async function deleteNote(id) {
+            if (!confirm('Bạn có chắc chắn muốn xóa ghi chú này không?')) return;
+
+            state.notes = state.notes.filter(n => n.id !== id);
+            renderNotes();
+            await saveNotesToGas();
         }
     </script>
 </body>
