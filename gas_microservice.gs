@@ -66,13 +66,19 @@ function handleRequest(e) {
       response.data = getNotes();
     } else if (action === "saveNotes") {
       response.data = saveNotes(data.notesList);
+    } else if (action === "getSparkTasks") {
+      response.data = getSparkTasks();
+    } else if (action === "logSparkTask") {
+      response.data = logSparkTask(data);
+    } else if (action === "updateSparkTask") {
+      response.data = updateSparkTask(data);
     } else if (action === "setupTelegramTrigger") {
       response.data = setupTelegramTrigger();
     } else if (action === "testTelegramMessage") {
       response.data = sendDailyTelegramReminder();
     } else {
       response.status = "error";
-      response.error = "Invalid or missing action. Available: ping, getCalendarEvents, createCalendarEvent, getEmails, getThreadDetails, getAttachment, replyEmail, replyAllEmail, forwardEmail, deleteEmail, markReadEmail, sendEmail, getTasks, saveTasks, getNotes, saveNotes, setupTelegramTrigger, testTelegramMessage";
+      response.error = "Invalid or missing action. Available: ping, getCalendarEvents, createCalendarEvent, getEmails, getThreadDetails, getAttachment, replyEmail, replyAllEmail, forwardEmail, deleteEmail, markReadEmail, sendEmail, getTasks, saveTasks, getNotes, saveNotes, getSparkTasks, logSparkTask, updateSparkTask, setupTelegramTrigger, testTelegramMessage";
     }
   } catch (err) {
     response.status = "error";
@@ -578,3 +584,95 @@ function escapeTelegramHtml(text) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 }
+
+/**
+ * Gemini Spark Agent Tasks Functions
+ */
+function getOrCreateSparkTasksSheet() {
+  var fileName = "MyBoard Tasks";
+  var files = DriveApp.getFilesByName(fileName);
+  var ss;
+  
+  if (files.hasNext()) {
+    ss = SpreadsheetApp.open(files.next());
+  } else {
+    ss = SpreadsheetApp.create(fileName);
+  }
+  
+  var sheet = ss.getSheetByName("Gemini Spark Tasks");
+  if (!sheet) {
+    sheet = ss.insertSheet("Gemini Spark Tasks");
+    sheet.appendRow(["ID", "Title", "Description", "Priority", "Status", "SparkRef", "CreatedAt", "UpdatedAt"]);
+  }
+  return sheet;
+}
+
+function getSparkTasks() {
+  var sheet = getOrCreateSparkTasksSheet();
+  var data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return [];
+  
+  var tasks = [];
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    if (!row[0]) continue;
+    tasks.push({
+      id: row[0].toString(),
+      title: row[1] ? row[1].toString() : "",
+      description: row[2] ? row[2].toString() : "",
+      priority: row[3] ? row[3].toString() : "Medium",
+      status: row[4] ? row[4].toString() : "Pending",
+      sparkRef: row[5] ? row[5].toString() : "",
+      createdAt: row[6] ? row[6].toString() : new Date().toISOString(),
+      updatedAt: row[7] ? row[7].toString() : new Date().toISOString()
+    });
+  }
+  return tasks;
+}
+
+function logSparkTask(data) {
+  if (!data.title) throw new Error("Missing task title");
+  var sheet = getOrCreateSparkTasksSheet();
+  
+  var id = data.id || "spark_" + new Date().getTime();
+  var title = data.title;
+  var description = data.description || "";
+  var priority = data.priority || "Medium";
+  var status = data.status || "Pending";
+  var sparkRef = data.sparkRef || "Gemini Spark Session";
+  var now = new Date().toISOString();
+  
+  sheet.appendRow([id, title, description, priority, status, sparkRef, now, now]);
+  
+  return {
+    success: true,
+    message: "Spark task logged successfully",
+    task: { id: id, title: title, description: description, priority: priority, status: status, sparkRef: sparkRef, createdAt: now, updatedAt: now }
+  };
+}
+
+function updateSparkTask(data) {
+  if (!data.id) throw new Error("Missing task id");
+  var sheet = getOrCreateSparkTasksSheet();
+  var values = sheet.getDataRange().getValues();
+  
+  var found = false;
+  var now = new Date().toISOString();
+  
+  for (var i = 1; i < values.length; i++) {
+    if (values[i][0] && values[i][0].toString() === data.id.toString()) {
+      if (data.title !== undefined) sheet.getRange(i + 1, 2).setValue(data.title);
+      if (data.description !== undefined) sheet.getRange(i + 1, 3).setValue(data.description);
+      if (data.priority !== undefined) sheet.getRange(i + 1, 4).setValue(data.priority);
+      if (data.status !== undefined) sheet.getRange(i + 1, 5).setValue(data.status);
+      if (data.sparkRef !== undefined) sheet.getRange(i + 1, 6).setValue(data.sparkRef);
+      sheet.getRange(i + 1, 8).setValue(now);
+      found = true;
+      break;
+    }
+  }
+  
+  if (!found) throw new Error("Spark task not found with id: " + data.id);
+  return { success: true, message: "Spark task updated successfully" };
+}
+

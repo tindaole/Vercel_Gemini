@@ -714,6 +714,13 @@
                 </button>
             </li>
             <li class="nav-item">
+                <button onclick="switchTab('spark', this)">
+                    <i data-lucide="zap"></i>
+                    <span>Gemini Spark</span>
+                    <span class="badge" id="navSparkBadge">0</span>
+                </button>
+            </li>
+            <li class="nav-item">
                 <button onclick="switchTab('settings', this)">
                     <i data-lucide="settings"></i>
                     <span>Cấu hình GAS</span>
@@ -753,21 +760,26 @@
 
         <!-- VIEW 1: OVERVIEW -->
         <section id="view-overview" class="tab-view active">
-            <div class="grid-3">
-                <div class="card" style="border-top: 4px solid var(--primary);">
-                    <div class="card-title"><i data-lucide="mail" style="color: var(--primary);"></i> Email Primary chưa đọc</div>
-                    <h2 style="font-size: 36px; margin: 12px 0;" id="statUnreadCount">--</h2>
-                    <p style="font-size: 13px; color: var(--text-muted);">Top 10 email từ tab Primary</p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 24px;">
+                <div class="card" style="border-top: 4px solid var(--primary); margin-bottom: 0;">
+                    <div class="card-title"><i data-lucide="mail" style="color: var(--primary);"></i> Email chưa đọc</div>
+                    <h2 style="font-size: 32px; margin: 10px 0;" id="statUnreadCount">--</h2>
+                    <p style="font-size: 13px; color: var(--text-muted);">Tab Primary Inbox</p>
                 </div>
-                <div class="card" style="border-top: 4px solid var(--accent-purple);">
-                    <div class="card-title"><i data-lucide="calendar" style="color: var(--accent-purple);"></i> Sự kiện sắp tới</div>
-                    <h2 style="font-size: 36px; margin: 12px 0;" id="statCalCount">--</h2>
-                    <p style="font-size: 13px; color: var(--text-muted);">Trong 7 ngày tiếp theo</p>
+                <div class="card" style="border-top: 4px solid var(--accent-purple); margin-bottom: 0;">
+                    <div class="card-title"><i data-lucide="calendar" style="color: var(--accent-purple);"></i> Lịch 7 ngày tới</div>
+                    <h2 style="font-size: 32px; margin: 10px 0;" id="statCalCount">--</h2>
+                    <p style="font-size: 13px; color: var(--text-muted);">Sự kiện sắp tới</p>
                 </div>
-                <div class="card" style="border-top: 4px solid var(--accent-emerald);">
+                <div class="card" style="border-top: 4px solid var(--accent-amber); margin-bottom: 0;">
+                    <div class="card-title"><i data-lucide="zap" style="color: var(--accent-amber);"></i> Gemini Spark Agent</div>
+                    <h2 style="font-size: 32px; margin: 10px 0;" id="statSparkCount">--</h2>
+                    <p style="font-size: 13px; color: var(--text-muted);">Tác vụ đang chạy / chờ</p>
+                </div>
+                <div class="card" style="border-top: 4px solid var(--accent-emerald); margin-bottom: 0;">
                     <div class="card-title"><i data-lucide="sparkles" style="color: var(--accent-emerald);"></i> Gemini AI</div>
-                    <h2 style="font-size: 20px; margin: 16px 0; color: var(--accent-emerald);">Sẵn sàng hỗ trợ</h2>
-                    <p style="font-size: 13px; color: var(--text-muted);">Soạn email & giải đáp câu hỏi</p>
+                    <h2 style="font-size: 18px; margin: 14px 0; color: var(--accent-emerald);">Trợ lý Sẵn sàng</h2>
+                    <p style="font-size: 13px; color: var(--text-muted);">Soạn thảo & Giải đáp</p>
                 </div>
             </div>
 
@@ -1117,7 +1129,128 @@
             </div>
         </section>
 
+        <!-- VIEW: GEMINI SPARK AGENT TASKS -->
+        <section id="view-spark" class="tab-view">
+            <!-- Header Banner -->
+            <div class="card" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1)); border: 1px solid rgba(99, 102, 241, 0.2);">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                    <div>
+                        <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 10px;">
+                            <i data-lucide="zap" style="color: var(--accent-amber);"></i> Gemini Spark Agent Tasks
+                        </h2>
+                        <p style="font-size: 13px; color: var(--text-muted); max-width: 750px;">
+                            Theo dõi các tác vụ tự động chạy ngầm do Trợ lý Gemini Spark thực hiện. Đồng bộ 2 chiều qua Google Sheet <code>Gemini Spark Tasks</code>.
+                        </p>
+                    </div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" onclick="openSparkInstructionModal()"><i data-lucide="copy"></i> Prompt mẫu cho Spark</button>
+                        <button class="btn" onclick="openNewSparkTaskModal()"><i data-lucide="plus"></i> Thêm Task thủ công</button>
+                        <button class="btn btn-outline" onclick="loadSparkTasks()"><i data-lucide="refresh-cw"></i> Cập nhật</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters Bar -->
+            <div style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;">
+                <div style="flex: 1; min-width: 200px;">
+                    <input type="text" id="sparkSearchInput" class="input" placeholder="Tìm kiếm tác vụ Spark..." oninput="renderSparkTasks()">
+                </div>
+                <div style="width: 180px;">
+                    <select id="sparkStatusFilter" class="input" onchange="renderSparkTasks()">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="In Progress">⚡ In Progress (Đang chạy)</option>
+                        <option value="Pending">⏳ Pending (Chờ xử lý)</option>
+                        <option value="Completed">✅ Completed (Đã xong)</option>
+                        <option value="Failed">❌ Failed (Báo lỗi)</option>
+                    </select>
+                </div>
+                <div style="width: 180px;">
+                    <select id="sparkPriorityFilter" class="input" onchange="renderSparkTasks()">
+                        <option value="">Tất cả độ ưu tiên</option>
+                        <option value="High">🔥 High (Cao)</option>
+                        <option value="Medium">⚡ Medium (Trung bình)</option>
+                        <option value="Low">📌 Low (Thấp)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Tasks List Container -->
+            <div id="sparkTasksContainer" class="grid-2">
+                <p style="color: var(--text-muted);"><span class="spinner"></span> Đang tải tác vụ Gemini Spark...</p>
+            </div>
+        </section>
+
     </main>
+
+    <!-- Modal: Create/Edit Spark Task -->
+    <div id="newSparkTaskModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <h3 style="margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center;">
+                <span>Thêm tác vụ Gemini Spark mới</span>
+                <i data-lucide="x" style="cursor: pointer;" onclick="closeModal('newSparkTaskModal')"></i>
+            </h3>
+            <form onsubmit="submitCreateSparkTask(event)" style="display: flex; flex-direction: column; gap: 14px;">
+                <div>
+                    <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Tên công việc / Tác vụ:</label>
+                    <input type="text" id="sparkTaskTitleInput" class="input" placeholder="Ví dụ: Tổng hợp báo cáo dữ liệu tuần..." required>
+                </div>
+                <div>
+                    <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Mô tả / Ghi chú tác vụ:</label>
+                    <textarea id="sparkTaskDescInput" class="input" rows="3" placeholder="Thông tin chi tiết công việc do Spark xử lý..."></textarea>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Mức ưu tiên:</label>
+                        <select id="sparkTaskPriorityInput" class="input">
+                            <option value="High">🔥 High (Mức cao)</option>
+                            <option value="Medium" selected>⚡ Medium (Trung bình)</option>
+                            <option value="Low">📌 Low (Thấp)</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Trạng thái:</label>
+                        <select id="sparkTaskStatusInput" class="input">
+                            <option value="Pending" selected>⏳ Pending (Chờ)</option>
+                            <option value="In Progress">⚡ In Progress (Đang chạy)</option>
+                            <option value="Completed">✅ Completed (Đã xong)</option>
+                            <option value="Failed">❌ Failed (Thất bại)</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Nguồn / Spark Ref:</label>
+                    <input type="text" id="sparkTaskRefInput" class="input" placeholder="Gemini Spark Auto-Job #12">
+                </div>
+                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 8px;">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('newSparkTaskModal')">Hủy</button>
+                    <button type="submit" class="btn" id="saveSparkTaskBtn">Tạo Tác Vụ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Gemini Spark Prompt Instructions -->
+    <div id="sparkInstructionModal" class="modal">
+        <div class="modal-content" style="max-width: 550px;">
+            <h3 style="margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;">
+                <span><i data-lucide="terminal" style="color: var(--primary);"></i> Hướng dẫn kết nối Gemini Spark</span>
+                <i data-lucide="x" style="cursor: pointer;" onclick="closeModal('sparkInstructionModal')"></i>
+            </h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.5;">
+                Copy đoạn hướng dẫn bên dưới và dán vào câu lệnh hoặc playbook của <strong>Gemini Spark</strong> để AI tự động ghi chú công việc chạy ngầm vào bảng tính Google Sheet của bạn:
+            </p>
+            <div style="position: relative; margin-bottom: 16px;">
+                <textarea id="sparkPromptTextarea" class="input" rows="5" readonly style="font-family: monospace; font-size: 12px; line-height: 1.5; background: rgba(0,0,0,0.3);">Mỗi khi bạn tạo, thực hiện hoặc hoàn thành một công việc chạy ngầm (background task), hãy tự động ghi thông tin công việc vào tab 'Gemini Spark Tasks' trong tệp Google Sheet 'MyBoard Tasks' với các cột: ID, Title, Description, Priority (High/Medium/Low), Status (In Progress/Pending/Completed/Failed), SparkRef.</textarea>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span id="sparkCopySuccessMsg" style="font-size: 12px; color: var(--accent-emerald); display: none;">✓ Đã sao chép vào bộ nhớ tạm!</span>
+                <div style="display: flex; gap: 10px; margin-left: auto;">
+                    <button class="btn btn-outline" onclick="closeModal('sparkInstructionModal')">Đóng</button>
+                    <button class="btn" onclick="copySparkPromptText()"><i data-lucide="copy"></i> Sao chép Prompt</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Modal: Create/Edit Note -->
     <div id="noteModal" class="modal">
@@ -1270,7 +1403,8 @@
             tasks: [],
             maxEmails: 10,
             notes: [],
-            noteColorFilter: ''
+            noteColorFilter: '',
+            sparkTasks: []
         };
 
         let sessionInterval = null;
@@ -1483,6 +1617,7 @@
                 todo: ['Ma trận Công việc', 'Quản lý và ưu tiên các công việc theo ma trận Eisenhower (Quan trọng & Khẩn cấp).'],
                 gemini: ['Trợ lý Trí tuệ Nhân tạo', 'Đặt câu hỏi và nhận câu trả lời thông minh từ Gemini.'],
                 notes: ['Sổ tay ghi chú cá nhân', 'Tạo, sửa, xóa và phân loại màu sắc các ghi chú của bạn (lưu trữ trên Google Sheets).'],
+                spark: ['Gemini Spark Agent Tasks', 'Theo dõi và quản lý các tác vụ tự động chạy ngầm từ Trợ lý Gemini Spark.'],
                 settings: ['Cấu hình Microservice', 'Quản lý kết nối tới Google Apps Script cá nhân.']
             };
 
@@ -1500,6 +1635,9 @@
             if (tabId === 'notes' && state.notes.length === 0 && state.gasConfigured) {
                 loadNotesFromGas();
             }
+            if ((tabId === 'spark' || tabId === 'overview') && state.sparkTasks.length === 0 && state.gasConfigured) {
+                loadSparkTasks();
+            }
         }
 
         // GAS Microservice Communication Helper
@@ -1507,7 +1645,7 @@
             let url = '/api/gas';
             let options = {};
 
-            const isReadAction = action === 'ping' || action === 'getEmails' || action === 'getThreadDetails' || action === 'getAttachment' || action === 'getCalendarEvents' || action === 'getNotes' || method.toUpperCase() === 'GET';
+            const isReadAction = action === 'ping' || action === 'getEmails' || action === 'getThreadDetails' || action === 'getAttachment' || action === 'getCalendarEvents' || action === 'getNotes' || action === 'getSparkTasks' || method.toUpperCase() === 'GET';
 
             if (isReadAction) {
                 const queryParams = new URLSearchParams(Object.assign({ action: action, _t: Date.now() }, params));
@@ -2730,6 +2868,183 @@
             state.notes = state.notes.filter(n => n.id !== id);
             renderNotes();
             await saveNotesToGas();
+        }
+
+        // Gemini Spark Agent Tasks Functions
+        async function loadSparkTasks() {
+            if (!state.gasConfigured) return;
+            const container = document.getElementById('sparkTasksContainer');
+            if (container) container.innerHTML = '<p style="color: var(--text-muted);"><span class="spinner"></span> Đang tải tác vụ Gemini Spark...</p>';
+
+            try {
+                const tasks = await fetchFromGas('getSparkTasks');
+                state.sparkTasks = tasks || [];
+                
+                const activeCount = state.sparkTasks.filter(t => t.status === 'In Progress' || t.status === 'Pending').length;
+                
+                const statEl = document.getElementById('statSparkCount');
+                if (statEl) statEl.textContent = activeCount;
+                
+                const badgeEl = document.getElementById('navSparkBadge');
+                if (badgeEl) badgeEl.textContent = activeCount;
+
+                renderSparkTasks();
+            } catch (err) {
+                if (container) container.innerHTML = `<p style="color: var(--accent-rose);">Lỗi tải Spark Tasks: ${err.message}</p>`;
+            }
+        }
+
+        function renderSparkTasks() {
+            const container = document.getElementById('sparkTasksContainer');
+            if (!container) return;
+
+            const search = (document.getElementById('sparkSearchInput')?.value || '').toLowerCase().trim();
+            const statusFilter = document.getElementById('sparkStatusFilter')?.value || '';
+            const priorityFilter = document.getElementById('sparkPriorityFilter')?.value || '';
+
+            let filtered = state.sparkTasks.filter(task => {
+                const matchesSearch = !search || task.title.toLowerCase().includes(search) || task.description.toLowerCase().includes(search) || task.sparkRef.toLowerCase().includes(search);
+                const matchesStatus = !statusFilter || task.status === statusFilter;
+                const matchesPriority = !priorityFilter || task.priority === priorityFilter;
+                return matchesSearch && matchesStatus && matchesPriority;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px 20px; color: var(--text-muted); background: var(--bg-card); border: 1px solid var(--bg-card-border); border-radius: 16px;">
+                        <i data-lucide="zap-off" style="width: 40px; height: 40px; stroke-width: 1.5; margin-bottom: 8px;"></i>
+                        <p style="font-size: 14px;">Không tìm thấy tác vụ Gemini Spark nào.</p>
+                        <button class="btn btn-outline" style="margin-top: 12px; font-size: 12px;" onclick="openSparkInstructionModal()">Xem hướng dẫn kết nối Spark</button>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            const priorityBadges = {
+                High: { label: '🔥 High', bg: 'rgba(244, 63, 94, 0.15)', color: '#f43f5e' },
+                Medium: { label: '⚡ Medium', bg: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' },
+                Low: { label: '📌 Low', bg: 'rgba(148, 163, 184, 0.15)', color: '#94a3b8' }
+            };
+
+            const statusBadges = {
+                'In Progress': { label: '⚡ In Progress', bg: 'rgba(99, 102, 241, 0.2)', color: '#818cf8' },
+                'Pending': { label: '⏳ Pending', bg: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' },
+                'Completed': { label: '✅ Completed', bg: 'rgba(16, 185, 129, 0.15)', color: '#10b981' },
+                'Failed': { label: '❌ Failed', bg: 'rgba(244, 63, 94, 0.15)', color: '#f43f5e' }
+            };
+
+            container.innerHTML = filtered.map(task => {
+                const prio = priorityBadges[task.priority] || priorityBadges.Medium;
+                const stat = statusBadges[task.status] || statusBadges.Pending;
+                const dateStr = task.updatedAt ? new Date(task.updatedAt).toLocaleString('vi-VN') : '';
+
+                return `
+                    <div class="card" style="border-left: 4px solid ${stat.color}; margin-bottom: 0; display: flex; flex-direction: column; justify-content: space-between;">
+                        <div>
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 10px;">
+                                <span style="font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px; background: ${stat.bg}; color: ${stat.color};">
+                                    ${stat.label}
+                                </span>
+                                <span style="font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px; background: ${prio.bg}; color: ${prio.color};">
+                                    ${prio.label}
+                                </span>
+                            </div>
+                            <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 6px; color: var(--text-main);">${escapeHtml(task.title)}</h3>
+                            ${task.description ? `<p style="font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 12px;">${escapeHtml(task.description)}</p>` : ''}
+                        </div>
+
+                        <div style="border-top: 1px solid var(--bg-card-border); padding-top: 12px; margin-top: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">
+                                <span><i data-lucide="bot" style="width: 12px; height: 12px; vertical-align: middle;"></i> ${escapeHtml(task.sparkRef || 'Spark')}</span>
+                                <span>${dateStr}</span>
+                            </div>
+
+                            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                ${task.status !== 'In Progress' ? `<button class="btn btn-outline" style="padding: 3px 8px; font-size: 11px;" onclick="updateSparkStatus('${task.id}', 'In Progress')">⚡ Chạy</button>` : ''}
+                                ${task.status !== 'Completed' ? `<button class="btn btn-outline" style="padding: 3px 8px; font-size: 11px; color: var(--accent-emerald);" onclick="updateSparkStatus('${task.id}', 'Completed')">✅ Xong</button>` : ''}
+                                ${task.status !== 'Pending' ? `<button class="btn btn-outline" style="padding: 3px 8px; font-size: 11px;" onclick="updateSparkStatus('${task.id}', 'Pending')">⏳ Chờ</button>` : ''}
+                                ${task.status !== 'Failed' ? `<button class="btn btn-outline" style="padding: 3px 8px; font-size: 11px; color: var(--accent-rose);" onclick="updateSparkStatus('${task.id}', 'Failed')">❌ Lỗi</button>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        async function updateSparkStatus(taskId, newStatus) {
+            try {
+                await fetchFromGas('updateSparkTask', { id: taskId, status: newStatus }, 'POST');
+                const task = state.sparkTasks.find(t => t.id === taskId);
+                if (task) {
+                    task.status = newStatus;
+                    task.updatedAt = new Date().toISOString();
+                }
+                const activeCount = state.sparkTasks.filter(t => t.status === 'In Progress' || t.status === 'Pending').length;
+                const statEl = document.getElementById('statSparkCount');
+                if (statEl) statEl.textContent = activeCount;
+                const badgeEl = document.getElementById('navSparkBadge');
+                if (badgeEl) badgeEl.textContent = activeCount;
+
+                renderSparkTasks();
+            } catch (err) {
+                alert('Lỗi cập nhật trạng thái tác vụ Spark: ' + err.message);
+            }
+        }
+
+        function openNewSparkTaskModal() {
+            document.getElementById('newSparkTaskModal').classList.add('open');
+            document.getElementById('sparkTaskTitleInput').value = '';
+            document.getElementById('sparkTaskDescInput').value = '';
+            document.getElementById('sparkTaskPriorityInput').value = 'Medium';
+            document.getElementById('sparkTaskStatusInput').value = 'Pending';
+            document.getElementById('sparkTaskRefInput').value = 'MyBoard Spark Manual';
+        }
+
+        async function submitCreateSparkTask(event) {
+            event.preventDefault();
+            const title = document.getElementById('sparkTaskTitleInput').value.trim();
+            const description = document.getElementById('sparkTaskDescInput').value.trim();
+            const priority = document.getElementById('sparkTaskPriorityInput').value;
+            const status = document.getElementById('sparkTaskStatusInput').value;
+            const sparkRef = document.getElementById('sparkTaskRefInput').value.trim() || 'Spark Agent';
+
+            if (!title) return alert('Vui lòng nhập tên công việc!');
+
+            const btn = document.getElementById('saveSparkTaskBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Đang tạo...';
+
+            try {
+                await fetchFromGas('logSparkTask', { title, description, priority, status, sparkRef }, 'POST');
+                closeModal('newSparkTaskModal');
+                loadSparkTasks();
+            } catch (err) {
+                alert('Lỗi tạo tác vụ Spark: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Tạo Tác Vụ';
+            }
+        }
+
+        function openSparkInstructionModal() {
+            document.getElementById('sparkInstructionModal').classList.add('open');
+            document.getElementById('sparkCopySuccessMsg').style.display = 'none';
+        }
+
+        function copySparkPromptText() {
+            const textarea = document.getElementById('sparkPromptTextarea');
+            if (!textarea) return;
+            textarea.select();
+            navigator.clipboard.writeText(textarea.value).then(() => {
+                const msg = document.getElementById('sparkCopySuccessMsg');
+                if (msg) msg.style.display = 'inline';
+                setTimeout(() => { if (msg) msg.style.display = 'none'; }, 3000);
+            }).catch(() => {
+                alert('Vui lòng sao chép văn bản bằng tay.');
+            });
         }
     </script>
 </body>
